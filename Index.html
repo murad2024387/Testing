@@ -1,571 +1,73 @@
 <!DOCTYPE html>
-<html lang="ur" dir="rtl">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مراد مسالا - برانچ مینجمنٹ</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Firebase Firestore App</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
     
-    <!-- Bootstrap RTL CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    #connection-status {
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    .online {
+      background-color: #d4edda;
+      color: #155724;
+    }
     
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    .offline {
+      background-color: #f8d7da;
+      color: #721c24;
+    }
     
-    <style>
-        :root {
-            --primary-color: #8B0000;
-            --offline-color: #dc3545;
-            --online-color: #28a745;
-            --pending-color: #ffc107;
-        }
-        
-        body {
-            font-family: 'Segoe UI', 'Nafees Nastaleeq', Tahoma, sans-serif;
-            background-color: #f8f9fa;
-            padding-top: 20px;
-        }
-        
-        .logo-container {
-            height: 80px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background-color: var(--primary-color);
-            color: white;
-            border-radius: 8px;
-            margin-bottom: 15px;
-        }
-        
-        .logo-text {
-            font-size: 1.8rem;
-            font-weight: bold;
-        }
-        
-        .connection-status {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            transition: all 0.3s ease;
-        }
-        
-        .sync-btn {
-            transition: all 0.3s;
-        }
-        
-        .sync-btn .spinner {
-            display: none;
-        }
-        
-        .sync-btn.syncing .spinner {
-            display: inline-block;
-        }
-        
-        .sync-btn.syncing .text {
-            display: none;
-        }
-        
-        .branch-image {
-            width: 60px;
-            height: 60px;
-            object-fit: cover;
-            border-radius: 50%;
-            background-color: #eee;
-        }
-        
-        .action-btns .btn {
-            margin: 0 3px;
-            white-space: nowrap;
-        }
-        
-        @media (max-width: 768px) {
-            .action-btns .btn {
-                margin: 2px 0;
-                display: block;
-                width: 100%;
-            }
-        }
-        
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-        }
-        
-        .status-online {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        
-        .status-offline {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        
-        .status-pending {
-            background-color: #fff3cd;
-            color: #856404;
-        }
-    </style>
+    .data-item {
+      border: 1px solid #ddd;
+      padding: 15px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+    }
+    
+    .error {
+      color: #721c24;
+      background-color: #f8d7da;
+      padding: 10px;
+      border-radius: 4px;
+    }
+  </style>
 </head>
 <body>
-    <!-- Connection Status Banner -->
-    <div id="connectionStatus" class="connection-status alert alert-dismissible fade show mb-4" role="alert">
-        <div class="d-flex justify-content-between align-items-center">
-            <span id="connectionText">
-                <i class="fas fa-circle-notch fa-spin"></i> کنکشن کی حالت چیک ہو رہی ہے...
-            </span>
-            <button type="button" class="btn-close" onclick="dismissAlert()"></button>
-        </div>
+  <h1>Firebase Firestore App</h1>
+  
+  <div id="connection-status">Checking connection...</div>
+  
+  <div id="app">
+    <h2>Data from Firestore:</h2>
+    <div id="data-container">
+      <p>Loading data...</p>
     </div>
+  </div>
 
-    <div class="container">
-        <!-- Header -->
-        <div class="text-center mb-4">
-            <div class="logo-container">
-                <span class="logo-text">مراد مسالا</span>
-            </div>
-            <h1>برانچ مینجمنٹ سسٹم</h1>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-network-wired fa-3x mb-3 text-primary"></i>
-                        <h5>کنکشن کی حالت</h5>
-                        <div id="networkStatus" class="badge bg-secondary">جانچ ہو رہی ہے...</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-database fa-3x mb-3 text-info"></i>
-                        <h5>مقامی ڈیٹا</h5>
-                        <div id="localDataStatus" class="badge bg-secondary">0 برانچز</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
-                    <div class="card-body text-center">
-                        <i class="fas fa-cloud fa-3x mb-3 text-success"></i>
-                        <h5>کلاؤڈ ڈیٹا</h5>
-                        <div id="cloudDataStatus" class="badge bg-secondary">0 برانچز</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Branch Management Card -->
-        <div class="card shadow">
-            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">برانچز کا انتظام</h5>
-                <button id="syncNowBtn" class="btn btn-light sync-btn">
-                    <span class="text">مطابقت پذیری</span>
-                    <span class="spinner-border spinner-border-sm spinner" role="status"></span>
-                </button>
-            </div>
-            
-            <div class="card-body">
-                <!-- Branch Form -->
-                <form id="branchForm" class="mb-4">
-                    <input type="hidden" id="editId">
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
-                            <label for="branchName" class="form-label">برانچ کا نام</label>
-                            <input type="text" class="form-control" id="branchName" required>
-                        </div>
-                        <div class="col-md-5 mb-3">
-                            <label for="branchAddress" class="form-label">پتہ</label>
-                            <input type="text" class="form-control" id="branchAddress" required>
-                        </div>
-                        <div class="col-md-2 mb-3 d-flex align-items-end">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="isDefault">
-                                <label class="form-check-label" for="isDefault">ڈیفالٹ برانچ</label>
-                            </div>
-                        </div>
-                        <div class="col-md-1 mb-3 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary w-100">
-                                <span id="submitBtnText">شامل کریں</span>
-                            </button>
-                        </div>
-                    </div>
-                </form>
-                
-                <!-- Branches Table -->
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th width="80px">تصویر</th>
-                                <th>نام</th>
-                                <th>پتہ</th>
-                                <th width="120px">حالت</th>
-                                <th width="150px">عملیات</th>
-                            </tr>
-                        </thead>
-                        <tbody id="branchesTable">
-                            <tr>
-                                <td colspan="5" class="text-center py-5">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">لوڈ ہو رہا ہے...</span>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dexie for IndexedDB -->
-    <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- App JS -->
-    <script>
-        // Initialize Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
-            authDomain: "muradapps-dbe17.firebaseapp.com",
-            projectId: "muradapps-dbe17",
-            storageBucket: "muradapps-dbe17.appspot.com",
-            messagingSenderId: "117855279460",
-            appId: "1:117855279460:web:3403584abd902e5d628271",
-            measurementId: "G-8ZY9T7HFWE"
-        };
-        
-        // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        
-        // Initialize Dexie (IndexedDB)
-        const localDB = new Dexie("MuradMasalaDB");
-        localDB.version(1).stores({
-            branches: "++id,name,address,isDefault,firebaseId,isSynced,lastUpdated",
-            syncQueue: "++id,action,collection,data,createdAt,attempts"
-        });
-        
-        // App State
-        let isOnline = navigator.onLine;
-        let dbConnected = false;
-        let currentEditId = null;
-        
-        // DOM Elements
-        const connectionStatus = document.getElementById('connectionStatus');
-        const connectionText = document.getElementById('connectionText');
-        const networkStatus = document.getElementById('networkStatus');
-        const localDataStatus = document.getElementById('localDataStatus');
-        const cloudDataStatus = document.getElementById('cloudDataStatus');
-        const syncNowBtn = document.getElementById('syncNowBtn');
-        const branchForm = document.getElementById('branchForm');
-        const branchesTable = document.getElementById('branchesTable');
-        const submitBtnText = document.getElementById('submitBtnText');
-        
-        // Initialize App
-        document.addEventListener('DOMContentLoaded', initApp);
-        
-        async function initApp() {
-            setupConnectionMonitoring();
-            setupEventListeners();
-            await loadBranches();
-        }
-        
-        // Connection Monitoring
-        function setupConnectionMonitoring() {
-            // Initial check
-            checkFirebaseConnection();
-            
-            // Monitor network status
-            window.addEventListener('online', handleOnline);
-            window.addEventListener('offline', handleOffline);
-            
-            // Periodic Firebase connection check
-            setInterval(checkFirebaseConnection, 30000);
-        }
-        
-        async function checkFirebaseConnection() {
-            try {
-                const testDocRef = db.collection("connectionTest").doc("test");
-                await testDocRef.get({ source: "default" });
-                
-                dbConnected = true;
-                updateConnectionStatus(true);
-                return true;
-            } catch (error) {
-                dbConnected = false;
-                updateConnectionStatus(false);
-                return false;
-            }
-        }
-        
-        function handleOnline() {
-            isOnline = true;
-            networkStatus.textContent = "آن لائن";
-            networkStatus.className = "badge bg-success";
-            checkFirebaseConnection();
-            processSyncQueue();
-        }
-        
-        function handleOffline() {
-            isOnline = false;
-            dbConnected = false;
-            networkStatus.textContent = "آف لائن";
-            networkStatus.className = "badge bg-danger";
-            updateConnectionStatus(false);
-        }
-        
-        function updateConnectionStatus(connected) {
-            if (connected) {
-                connectionStatus.className = "connection-status alert alert-success alert-dismissible fade show mb-4";
-                connectionText.innerHTML = '<i class="fas fa-wifi"></i> آن لائن: فائر بیس سے منسلک';
-            } else {
-                connectionStatus.className = "connection-status alert alert-danger alert-dismissible fade show mb-4";
-                connectionText.innerHTML = '<i class="fas fa-exclamation-triangle"></i> آف لائن: مقامی ڈیٹا استعمال ہو رہا ہے';
-            }
-        }
-        
-        // Event Listeners
-        function setupEventListeners() {
-            branchForm.addEventListener('submit', handleFormSubmit);
-            syncNowBtn.addEventListener('click', processSyncQueue);
-        }
-        
-        // Form Handling
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-            
-            const branchData = {
-                name: document.getElementById('branchName').value,
-                address: document.getElementById('branchAddress').value,
-                isDefault: document.getElementById('isDefault').checked,
-                isSynced: false,
-                lastUpdated: new Date().toISOString()
-            };
-            
-            try {
-                if (currentEditId) {
-                    await updateBranch(currentEditId, branchData);
-                } else {
-                    await addBranch(branchData);
-                }
-                
-                branchForm.reset();
-                currentEditId = null;
-                submitBtnText.textContent = "شامل کریں";
-                await loadBranches();
-            } catch (error) {
-                console.error("Error saving branch:", error);
-                alert("برانچ محفوظ کرنے میں خرابی: " + error.message);
-            }
-        }
-        
-        // Branch CRUD Operations
-        async function addBranch(branchData) {
-            if (isOnline && dbConnected) {
-                try {
-                    const docRef = await db.collection("branches").add(branchData);
-                    branchData.firebaseId = docRef.id;
-                    branchData.isSynced = true;
-                } catch (error) {
-                    console.error("Firebase add error:", error);
-                }
-            }
-            
-            await localDB.branches.add(branchData);
-            
-            if (!(isOnline && dbConnected)) {
-                await localDB.syncQueue.add({
-                    action: "ADD",
-                    collection: "branches",
-                    data: branchData,
-                    createdAt: new Date().toISOString(),
-                    attempts: 0
-                });
-            }
-        }
-        
-        async function updateBranch(branchId, updatedData) {
-            const branch = await localDB.branches.get(branchId);
-            
-            if (isOnline && dbConnected && branch.firebaseId) {
-                try {
-                    await db.collection("branches").doc(branch.firebaseId).update(updatedData);
-                    updatedData.isSynced = true;
-                } catch (error) {
-                    console.error("Firebase update error:", error);
-                }
-            }
-            
-            await localDB.branches.update(branchId, updatedData);
-            
-            if (!(isOnline && dbConnected)) {
-                await localDB.syncQueue.add({
-                    action: "UPDATE",
-                    collection: "branches",
-                    data: { ...updatedData, id: branchId, firebaseId: branch.firebaseId },
-                    createdAt: new Date().toISOString(),
-                    attempts: 0
-                });
-            }
-        }
-        
-        async function deleteBranch(branchId) {
-            const branch = await localDB.branches.get(branchId);
-            
-            if (isOnline && dbConnected && branch.firebaseId) {
-                try {
-                    await db.collection("branches").doc(branch.firebaseId).delete();
-                } catch (error) {
-                    console.error("Firebase delete error:", error);
-                }
-            }
-            
-            await localDB.branches.delete(branchId);
-            
-            if (!(isOnline && dbConnected)) {
-                await localDB.syncQueue.add({
-                    action: "DELETE",
-                    collection: "branches",
-                    data: { id: branchId, firebaseId: branch.firebaseId },
-                    createdAt: new Date().toISOString(),
-                    attempts: 0
-                });
-            }
-        }
-        
-        // Data Synchronization
-        async function processSyncQueue() {
-            if (!isOnline || !dbConnected) {
-                alert("مطابقت پذیری کے لیے آن لائن ہونا ضروری ہے");
-                return;
-            }
-            
-            syncNowBtn.classList.add('syncing');
-            
-            try {
-                const pendingItems = await localDB.syncQueue.toArray();
-                
-                for (const item of pendingItems) {
-                    try {
-                        switch (item.action) {
-                            case "ADD":
-                                const docRef = await db.collection(item.collection).add(item.data);
-                                await localDB.branches.update(item.data.id, {
-                                    firebaseId: docRef.id,
-                                    isSynced: true
-                                });
-                                break;
-                                
-                            case "UPDATE":
-                                await db.collection(item.collection).doc(item.data.firebaseId).update(item.data);
-                                await localDB.branches.update(item.data.id, { isSynced: true });
-                                break;
-                                
-                            case "DELETE":
-                                await db.collection(item.collection).doc(item.data.firebaseId).delete();
-                                break;
-                        }
-                        
-                        await localDB.syncQueue.delete(item.id);
-                    } catch (error) {
-                        console.error(`Error syncing ${item.action}:`, error);
-                        await localDB.syncQueue.update(item.id, { 
-                            attempts: item.attempts + 1,
-                            lastError: error.message
-                        });
-                    }
-                }
-                
-                await loadBranches();
-                alert("مطابقت پذیری کامیاب!");
-            } catch (error) {
-                console.error("Sync error:", error);
-                alert("مطابقت پذیری میں خرابی: " + error.message);
-            } finally {
-                syncNowBtn.classList.remove('syncing');
-            }
-        }
-        
-        // Data Loading
-        async function loadBranches() {
-            try {
-                const branches = await localDB.branches.toArray();
-                renderBranches(branches);
-                localDataStatus.textContent = `${branches.length} برانچز`;
-                
-                if (isOnline && dbConnected) {
-                    const snapshot = await db.collection("branches").get();
-                    cloudDataStatus.textContent = `${snapshot.size} برانچز`;
-                }
-            } catch (error) {
-                console.error("Error loading branches:", error);
-            }
-        }
-        
-        function renderBranches(branches) {
-            branchesTable.innerHTML = branches.map(branch => `
-                <tr>
-                    <td>
-                        <div class="branch-image d-flex align-items-center justify-content-center">
-                            <i class="fas fa-store text-muted"></i>
-                        </div>
-                    </td>
-                    <td>${branch.name}</td>
-                    <td>${branch.address}</td>
-                    <td>
-                        <span class="status-badge ${branch.isSynced ? 'status-online' : 'status-pending'}">
-                            ${branch.isSynced ? 'مطابقت پذیر' : 'مطابقت پذیری باقی'}
-                        </span>
-                    </td>
-                    <td class="action-btns">
-                        <button class="btn btn-sm btn-warning" onclick="editBranch('${branch.id}')">
-                            <i class="fas fa-edit"></i> ترمیم
-                        </button>
-                        <button class="btn btn-sm btn-danger" onclick="deleteBranchPrompt('${branch.id}')">
-                            <i class="fas fa-trash"></i> حذف
-                        </button>
-                    </td>
-                </tr>
-            `).join('') || '<tr><td colspan="5" class="text-center">کوئی برانچ دستیاب نہیں</td></tr>';
-        }
-        
-        // UI Functions
-        function dismissAlert() {
-            connectionStatus.classList.remove('show');
-        }
-        
-        // Global Functions
-        window.editBranch = async function(branchId) {
-            const branch = await localDB.branches.get(branchId);
-            if (branch) {
-                document.getElementById('branchName').value = branch.name;
-                document.getElementById('branchAddress').value = branch.address;
-                document.getElementById('isDefault').checked = branch.isDefault;
-                document.getElementById('editId').value = branchId;
-                submitBtnText.textContent = "اپ ڈیٹ کریں";
-                currentEditId = branchId;
-                
-                // Scroll to form
-                document.getElementById('branchForm').scrollIntoView({ behavior: 'smooth' });
-            }
-        };
-        
-        window.deleteBranchPrompt = function(branchId) {
-            if (confirm("کیا آپ واقعی اس برانچ کو حذف کرنا چاہتے ہیں؟")) {
-                deleteBranch(branchId).then(() => loadBranches());
-            }
-        };
-    </script>
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
+  
+  <!-- Dexie.js for IndexedDB -->
+  <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
+  
+  <!-- App scripts -->
+  <script type="module" src="firebase.config.js"></script>
+  <script type="module" src="app.js"></script>
 </body>
 </html>

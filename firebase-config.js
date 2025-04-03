@@ -1,6 +1,18 @@
-// ====================
-// Firebase Initialization
-// ====================
+import { initializeApp } from "firebase/app";
+import { 
+  getFirestore,
+  enableIndexedDbPersistence,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
+  CACHE_SIZE_UNLIMITED,
+  connectFirestoreEmulator
+} from "firebase/firestore";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getStorage, connectStorageEmulator } from "firebase/storage";
+import { getFunctions, connectFunctionsEmulator } from "firebase/functions";
+
+// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
   authDomain: "muradapps-dbe17.firebaseapp.com",
@@ -12,458 +24,180 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
 
-// ====================
-// Local Database Setup (Dexie.js)
-// ====================
-const localDB = new Dexie("MuradMasalaDB");
-localDB.version(2).stores({
-  branches: "++id, name, address, isDefault, firebaseId, isSynced, lastUpdated",
-  syncQueue: "++id, action, collection, data, createdAt, attempts, lastError"
-});
+// Initialize Firestore with enhanced offline support
+let db;
+try {
+  db = initializeFirestore(app, {
+    localCache: persistentLocalCache({
+      cacheSizeBytes: CACHE_SIZE_UNLIMITED,
+      tabManager: persistentMultipleTabManager()
+    }),
+    experimentalForceLongPolling: true // Better for unstable connections
+  });
 
-// ====================
-// DOM Elements
-// ====================
-const connectionAlert = document.getElementById('connectionAlert');
-const connectionStatusText = document.getElementById('connectionStatusText');
-const dismissAlertBtn = document.getElementById('dismissAlertBtn');
-const networkStatus = document.getElementById('networkStatus');
-const localDataStatus = document.getElementById('localDataStatus');
-const cloudDataStatus = document.getElementById('cloudDataStatus');
-const branchForm = document.getElementById('branchForm');
-const branchNameInput = document.getElementById('branchName');
-const branchAddressInput = document.getElementById('branchAddress');
-const isDefaultCheckbox = document.getElementById('isDefault');
-const submitBtn = document.getElementById('submitBtn');
-const submitBtnText = document.getElementById('submitBtnText');
-const submitSpinner = document.getElementById('submitSpinner');
-const syncBtn = document.getElementById('syncBtn');
-const branchesTableBody = document.getElementById('branchesTable').querySelector('tbody');
-
-// ====================
-// App State
-// ====================
-let isOnline = navigator.onLine;
-let isFirebaseConnected = false;
-let editMode = false;
-let currentEditId = null;
-const activeListeners = [];
-
-// ====================
-// Initialization
-// ====================
-document.addEventListener('DOMContentLoaded', initApp);
-
-async function initApp() {
-  setupEventListeners();
-  setupNetworkMonitoring();
-  await checkFirebaseConnection();
-  await loadBranches();
-  setupFirestoreListeners();
-  startSyncInterval();
-}
-
-// ====================
-// Event Listeners
-// ====================
-function setupEventListeners() {
-  // Network events
-  window.addEventListener('online', handleOnline);
-  window.addEventListener('offline', handleOffline);
-  dismissAlertBtn.addEventListener('click', dismissAlert);
+  // Enable persistence with error handling
+  const enablePersistence = async () => {
+    try {
+      await enableIndexedDbPersistence(db, { forceOwnership: false });
+      console.log("Firestore persistence enabled");
+    } catch (err) {
+      if (err.code === 'failed-precondition') {
+        console.warn("Persistence already enabled in another tab");
+      } else if (err.code === 'unimplemented') {
+        console.warn("Persistence not supported in this browser");
+      }
+    }
+  };
   
-  // Form submission
-  branchForm.addEventListener('submit', handleFormSubmit);
-  
-  // Sync button
-  syncBtn.addEventListener('click', manualSync);
+  await enablePersistence();
+} catch (error) {
+  console.error("Firestore initialization error:", error);
+  // Fallback to regular Firestore if initialization fails
+  db = getFirestore(app);
 }
 
-// ====================
-// Network Monitoring
-// ====================
-function setupNetworkMonitoring() {
-  updateConnectionUI();
-}
+// Initialize other Firebase services
+const auth = getAuth(app);
+const storage = getStorage(app);
+const functions = getFunctions(app);
 
-async function checkFirebaseConnection() {
+// Emulator connection for development
+if (import.meta.env.MODE === 'development') {
   try {
-    // Test Firestore connection
-    await db.collection("connectionTest").doc("test").get({ source: "default" });
-    isFirebaseConnected = true;
-    updateConnectionUI();
-    return true;
-  } catch (error) {
-    isFirebaseConnected = false;
-    updateConnectionUI();
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    connectAuthEmulator(auth, "http://localhost:9099");
+    connectStorageEmulator(storage, "localhost", 9199);
+    connectFunctionsEmulator(functions, "localhost", 5001);
+    console.log("Connected to Firebase emulators");
+  } catch (emulatorError) {
+    console.warn("Failed to connect to emulators:", emulatorError);
+  }
+}
+
+// Firestore operations with offline support
+const firestoreOperations = {
+  /**
+   * Add a new document to Firestore with offline support
+   * @param {string} collection - Collection name
+   * @param {object} data - Document data
+   * @returns {Promise<string>} Document ID
+   */
+  async add(collection, data) {
+    try {
+      const docRef = await addDoc(collection(db, collection), data);
+      return docRef.id;
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  },
+
+  /**
+   * Update a document in Firestore with offline support
+   * @param {string} collection - Collection name
+   * @param {string} id - Document ID
+   * @param {object} data - Update data
+   */
+  async update(collection, id, data) {
+    try {
+      await updateDoc(doc(db, collection, id), data);
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  },
+
+  /**
+   * Delete a document from Firestore with offline support
+   * @param {string} collection - Collection name
+   * @param {string} id - Document ID
+   */
+  async delete(collection, id) {
+    try {
+      await deleteDoc(doc(db, collection, id));
+    } catch (error) {
+      throw this.handleError(error);
+    }
+  },
+
+  /**
+   * Set up a real-time listener with offline support
+   * @param {string} collection - Collection name
+   * @param {function} callback - Callback function
+   * @returns {function} Unsubscribe function
+   */
+  onSnapshot(collection, callback) {
+    const unsubscribe = onSnapshot(
+      collection(db, collection),
+      (snapshot) => {
+        const docs = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        callback(docs);
+      },
+      (error) => {
+        console.error("Listener error:", error);
+        this.handleError(error);
+      }
+    );
+    return unsubscribe;
+  },
+
+  /**
+   * Handle Firestore errors with localized messages
+   * @param {Error} error - Original error
+   * @returns {object} Processed error with user-friendly message
+   */
+  handleError(error) {
+    const errorMap = {
+      'permission-denied': {
+        message: "اجازت نہیں ہے - کنفیگریشن چیک کریں",
+        severity: "critical",
+        canRetry: false
+      },
+      'unavailable': {
+        message: "سروس دستیاب نہیں - آف لائن موڈ میں کام جاری ہے",
+        severity: "warning",
+        canRetry: true
+      },
+      'resource-exhausted': {
+        message: "سرور پر بوجھ زیادہ ہے، براہ کرم بعد میں کوشش کریں",
+        severity: "warning",
+        canRetry: true
+      },
+      'default': {
+        message: `فائر بیس کنکشن خرابی: ${error.message}`,
+        severity: "error",
+        canRetry: true
+      }
+    };
+
+    const errorInfo = errorMap[error.code] || errorMap.default;
+    return {
+      ...errorInfo,
+      originalError: error,
+      timestamp: new Date().toISOString()
+    };
+  }
+};
+
+// Export services and operations
+export { 
+  app,
+  db,
+  auth,
+  storage,
+  functions,
+  firestoreOperations
+};
+
+// Feature detection for analytics
+export async function isAnalyticsSupported() {
+  try {
+    const { isSupported } = await import('firebase/analytics');
+    return isSupported();
+  } catch {
     return false;
   }
 }
-
-function handleOnline() {
-  isOnline = true;
-  updateConnectionUI();
-  checkFirebaseConnection();
-  processSyncQueue();
-}
-
-function handleOffline() {
-  isOnline = false;
-  isFirebaseConnected = false;
-  updateConnectionUI();
-}
-
-function updateConnectionUI() {
-  if (!isOnline) {
-    showAlert("آف لائن: تبدیلیاں مقامی طور پر محفوظ ہو رہی ہیں", "offline");
-    networkStatus.textContent = "آف لائن";
-    networkStatus.className = "badge bg-danger";
-    return;
-  }
-
-  if (isFirebaseConnected) {
-    showAlert("آن لائن: فائر بیس سے منسلک", "online");
-    networkStatus.textContent = "آن لائن";
-    networkStatus.className = "badge bg-success";
-  } else {
-    showAlert("کنکشن مسائل: مقامی ڈیٹا استعمال ہو رہا ہے", "warning");
-    networkStatus.textContent = "مسائل";
-    networkStatus.className = "badge bg-warning";
-  }
-}
-
-function showAlert(message, type) {
-  connectionAlert.style.display = "flex";
-  connectionAlert.className = `connection-alert alert-${type}`;
-  connectionStatusText.textContent = message;
-}
-
-function dismissAlert() {
-  connectionAlert.style.display = "none";
-}
-
-// ====================
-// Branch Management
-// ====================
-async function handleFormSubmit(e) {
-  e.preventDefault();
-  
-  const branchData = {
-    name: branchNameInput.value,
-    address: branchAddressInput.value,
-    isDefault: isDefaultCheckbox.checked,
-    lastUpdated: new Date().toISOString()
-  };
-
-  // Show loading state
-  submitBtn.disabled = true;
-  submitBtnText.textContent = editMode ? "اپ ڈیٹ ہو رہا ہے..." : "محفوظ ہو رہا ہے...";
-  submitSpinner.style.display = "inline-block";
-
-  try {
-    if (editMode) {
-      await updateBranch(currentEditId, branchData);
-    } else {
-      await addBranch(branchData);
-    }
-    
-    // Reset form
-    branchForm.reset();
-    editMode = false;
-    currentEditId = null;
-    submitBtnText.textContent = "محفوظ کریں";
-  } catch (error) {
-    console.error("Error saving branch:", error);
-    showAlert(`محفوظ کرنے میں خرابی: ${error.message}`, "error");
-  } finally {
-    submitBtn.disabled = false;
-    submitSpinner.style.display = "none";
-    submitBtnText.textContent = "محفوظ کریں";
-  }
-}
-
-async function addBranch(branchData) {
-  // Add to local DB
-  const localId = await localDB.branches.add({
-    ...branchData,
-    isSynced: false,
-    firebaseId: null
-  });
-
-  // Add to sync queue
-  await localDB.syncQueue.add({
-    action: "ADD",
-    collection: "branches",
-    data: { ...branchData, localId },
-    createdAt: new Date().toISOString(),
-    attempts: 0,
-    lastError: null
-  });
-
-  // If online, sync immediately
-  if (isOnline && isFirebaseConnected) {
-    await processSyncQueue();
-  }
-
-  await loadBranches();
-}
-
-async function updateBranch(branchId, updatedData) {
-  // Update in local DB
-  await localDB.branches.update(branchId, {
-    ...updatedData,
-    isSynced: false
-  });
-
-  // Get current branch data
-  const branch = await localDB.branches.get(branchId);
-
-  // Add to sync queue
-  await localDB.syncQueue.add({
-    action: "UPDATE",
-    collection: "branches",
-    data: { ...updatedData, id: branchId, firebaseId: branch.firebaseId },
-    createdAt: new Date().toISOString(),
-    attempts: 0,
-    lastError: null
-  });
-
-  // If online, sync immediately
-  if (isOnline && isFirebaseConnected) {
-    await processSyncQueue();
-  }
-
-  await loadBranches();
-}
-
-async function deleteBranch(branchId) {
-  if (!confirm("کیا آپ واقعی اس برانچ کو حذف کرنا چاہتے ہیں؟")) return;
-
-  const branch = await localDB.branches.get(branchId);
-  
-  // Add to sync queue
-  await localDB.syncQueue.add({
-    action: "DELETE",
-    collection: "branches",
-    data: { id: branchId, firebaseId: branch?.firebaseId },
-    createdAt: new Date().toISOString(),
-    attempts: 0,
-    lastError: null
-  });
-
-  // Delete from local DB
-  await localDB.branches.delete(branchId);
-
-  // If online, sync immediately
-  if (isOnline && isFirebaseConnected) {
-    await processSyncQueue();
-  }
-
-  await loadBranches();
-}
-
-// ====================
-// Data Loading
-// ====================
-async function loadBranches() {
-  try {
-    // Load from local DB
-    const localBranches = await localDB.branches.toArray();
-    renderBranches(localBranches);
-    localDataStatus.textContent = localBranches.length;
-
-    // Load from Firestore if online
-    if (isOnline && isFirebaseConnected) {
-      const snapshot = await db.collection("branches").get();
-      cloudDataStatus.textContent = snapshot.size;
-    }
-  } catch (error) {
-    console.error("Error loading branches:", error);
-    showAlert("ڈیٹا لوڈ کرنے میں خرابی", "error");
-  }
-}
-
-function renderBranches(branches) {
-  branchesTableBody.innerHTML = branches.map(branch => `
-    <tr>
-      <td>${branch.name}</td>
-      <td>${branch.address}</td>
-      <td>${branch.isDefault ? 'ہاں' : 'نہیں'}</td>
-      <td>
-        <span class="badge ${branch.isSynced ? 'bg-success' : 'bg-warning'}">
-          ${branch.isSynced ? 'مطابقت پذیر' : 'مطابقت پذیری باقی'}
-        </span>
-      </td>
-      <td class="action-btns">
-        <button onclick="editBranch('${branch.id}')" class="btn btn-sm btn-primary">
-          <i class="fas fa-edit"></i> ترمیم
-        </button>
-        <button onclick="deleteBranch('${branch.id}')" class="btn btn-sm btn-danger">
-          <i class="fas fa-trash"></i> حذف
-        </button>
-      </td>
-    </tr>
-  `).join('');
-}
-
-// ====================
-// Sync Functions
-// ====================
-function startSyncInterval() {
-  // Sync every 2 minutes when online
-  setInterval(async () => {
-    if (isOnline && isFirebaseConnected) {
-      await processSyncQueue();
-    }
-  }, 120000);
-}
-
-async function manualSync() {
-  if (!isOnline) {
-    showAlert("آپ آف لائن ہیں۔ مطابقت پذیری کے لیے آن لائن ہوں", "warning");
-    return;
-  }
-
-  syncBtn.disabled = true;
-  syncBtn.querySelector('span').textContent = "مطابقت پذیری ہو رہی ہے...";
-  syncBtn.querySelector('.spinner').style.display = "inline-block";
-
-  try {
-    await processSyncQueue();
-    showAlert("مطابقت پذیری کامیاب!", "success");
-  } catch (error) {
-    console.error("Sync failed:", error);
-    showAlert(`مطابقت پذیری میں خرابی: ${error.message}`, "error");
-  } finally {
-    syncBtn.disabled = false;
-    syncBtn.querySelector('span').textContent = "مطابقت پذیری";
-    syncBtn.querySelector('.spinner').style.display = "none";
-  }
-}
-
-async function processSyncQueue() {
-  if (!isOnline || !isFirebaseConnected) return;
-
-  const pendingItems = await localDB.syncQueue.toArray();
-  if (pendingItems.length === 0) return;
-
-  for (const item of pendingItems) {
-    try {
-      switch (item.action) {
-        case "ADD":
-          const docRef = await db.collection(item.collection).add(item.data);
-          await localDB.branches.update(item.data.localId, {
-            firebaseId: docRef.id,
-            isSynced: true
-          });
-          break;
-          
-        case "UPDATE":
-          await db.collection(item.collection).doc(item.data.firebaseId).update(item.data);
-          await localDB.branches.update(item.data.id, { isSynced: true });
-          break;
-          
-        case "DELETE":
-          if (item.data.firebaseId) {
-            await db.collection(item.collection).doc(item.data.firebaseId).delete();
-          }
-          break;
-      }
-      
-      // Remove from queue if successful
-      await localDB.syncQueue.delete(item.id);
-    } catch (error) {
-      console.error(`Error syncing ${item.action} action:`, error);
-      
-      // Update attempt count
-      await localDB.syncQueue.update(item.id, { 
-        attempts: item.attempts + 1,
-        lastError: error.message
-      });
-      
-      // If too many attempts, give up
-      if (item.attempts >= 3) {
-        await localDB.syncQueue.delete(item.id);
-      }
-    }
-  }
-
-  await loadBranches();
-}
-
-// ====================
-// Firestore Listeners
-// ====================
-function setupFirestoreListeners() {
-  if (!isOnline) return;
-
-  const unsubscribe = db.collection("branches").onSnapshot(
-    (snapshot) => {
-      snapshot.docChanges().forEach(async (change) => {
-        if (change.type === "added" || change.type === "modified") {
-          // Check if this came from our own sync to avoid loops
-          const isLocalChange = await localDB.syncQueue
-            .where("data.firebaseId").equals(change.doc.id)
-            .first();
-          
-          if (!isLocalChange) {
-            // Update local DB
-            const data = change.doc.data();
-            const existing = await localDB.branches
-              .where("firebaseId").equals(change.doc.id)
-              .first();
-            
-            if (existing) {
-              await localDB.branches.update(existing.id, {
-                ...data,
-                isSynced: true
-              });
-            } else {
-              await localDB.branches.add({
-                ...data,
-                firebaseId: change.doc.id,
-                isSynced: true
-              });
-            }
-          }
-        }
-      });
-    },
-    (error) => {
-      console.error("Firestore listener error:", error);
-    }
-  );
-
-  activeListeners.push(unsubscribe);
-}
-
-// ====================
-// Global Functions
-// ====================
-window.editBranch = async function(branchId) {
-  const branch = await localDB.branches.get(branchId);
-  if (branch) {
-    branchNameInput.value = branch.name;
-    branchAddressInput.value = branch.address;
-    isDefaultCheckbox.checked = branch.isDefault;
-    
-    editMode = true;
-    currentEditId = branchId;
-    submitBtnText.textContent = "اپ ڈیٹ کریں";
-    
-    // Scroll to form
-    branchForm.scrollIntoView({ behavior: 'smooth' });
-  }
-};
-
-window.deleteBranch = async function(branchId) {
-  await deleteBranch(branchId);
-};
-
-// Cleanup listeners when page unloads
-window.addEventListener('beforeunload', () => {
-  activeListeners.forEach(unsubscribe => unsubscribe());
-});

@@ -1,12 +1,4 @@
-// Initialize Firebase
-const firebaseConfig = {
-  apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
-  authDomain: "muradapps-dbe17.firebaseapp.com",
-  projectId: "muradapps-dbe17",
-  storageBucket: "muradapps-dbe17.firebasestorage.app",
-  messagingSenderId: "117855279460",
-  appId: "1:117855279460:web:3403584abd902e5d628271"
-};
+
 
 const app = firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();

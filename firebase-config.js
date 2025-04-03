@@ -1,148 +1,129 @@
-// Import the required Firebase modules
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { 
-  getFirestore,
-  collection,
-  addDoc,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { db } from './firebase-config.js';
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
-  authDomain: "muradapps-dbe17.firebaseapp.com",
-  projectId: "muradapps-dbe17",
-  storageBucket: "muradapps-dbe17.appspot.com",
-  messagingSenderId: "117855279460",
-  appId: "1:117855279460:web:3403584abd902e5d628271",
-  measurementId: "G-8ZY9T7HFWE"
-};
+// Initialize local database
+const localDB = new Dexie("MuradMasalaLocalDB");
+localDB.version(2).stores({
+    branches: "++id,name,address,image,isDefault,firebaseId,isSynced,lastUpdated",
+    syncQueue: "++id,action,collection,data,createdAt,attempts",
+    appState: "key,value"
+});
 
-// Initialize Firebase
-let db;
-try {
-  const app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
-} catch (error) {
-  console.error("Firebase initialization error:", error);
-  throw new Error("فائر بیس کو شروع کرنے میں ناکامی۔ براہ کرم بعد میں کوشش کریں۔");
+// UI Elements
+const connectionBanner = document.getElementById('connectionBanner');
+const connectionStatus = document.getElementById('connectionStatus');
+const syncNowBtn = document.getElementById('syncNowBtn');
+const branchesTable = document.getElementById('branchesTable');
+const branchFormContainer = document.getElementById('branchFormContainer');
+
+// App State
+let isOnline = navigator.onLine;
+let activeListeners = [];
+let syncInProgress = false;
+
+// Initialize App
+document.addEventListener('DOMContentLoaded', initApp);
+
+async function initApp() {
+    setupNetworkMonitoring();
+    renderBranchForm();
+    await loadBranches();
+    setupFirestoreListeners();
+    startSyncInterval();
+    checkInitialSync();
 }
 
-/**
- * Adds a new branch to Firestore
- * @param {Object} branchData - Branch data to add
- * @returns {Promise<string>} Document ID of the new branch
- */
-async function addBranch(branchData) {
-  try {
-    const docRef = await addDoc(collection(db, "branches"), {
-      ...branchData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    return docRef.id;
-  } catch (error) {
-    console.error("Error adding branch:", error);
-    throw new Error("برانچ شامل کرنے میں ناکامی۔ براہ کرم دوبارہ کوشش کریں۔");
-  }
+// Network Management
+function setupNetworkMonitoring() {
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    updateConnectionUI();
 }
 
-/**
- * Updates an existing branch in Firestore
- * @param {string} branchId - ID of the branch to update
- * @param {Object} updatedData - New branch data
- * @returns {Promise<void>}
- */
-async function updateBranch(branchId, updatedData) {
-  try {
-    await updateDoc(doc(db, "branches", branchId), {
-      ...updatedData,
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error("Error updating branch:", error);
-    throw new Error("برانچ اپ ڈیٹ کرنے میں ناکامی۔ براہ کرم دوبارہ کوشش کریں۔");
-  }
+function handleOnline() {
+    isOnline = true;
+    updateConnectionUI();
+    showBanner("آن لائن: تبدیلیاں خودکار طور پر مطابقت پذیر ہو رہی ہیں", "alert-success");
+    processSyncQueue();
 }
 
-/**
- * Deletes a branch from Firestore
- * @param {string} branchId - ID of the branch to delete
- * @returns {Promise<void>}
- */
-async function deleteBranch(branchId) {
-  try {
-    await deleteDoc(doc(db, "branches", branchId));
-  } catch (error) {
-    console.error("Error deleting branch:", error);
-    throw new Error("برانچ حذف کرنے میں ناکامی۔ براہ کرم دوبارہ کوشش کریں۔");
-  }
+function handleOffline() {
+    isOnline = false;
+    updateConnectionUI();
+    showBanner("آف لائن: تبدیلیاں مقامی طور پر محفوظ ہو رہی ہیں", "alert-warning");
 }
 
-/**
- * Sets up a real-time listener for branches
- * @param {Function} callback - Function to call with branch data
- * @returns {Function} Unsubscribe function
- */
-function setupBranchesListener(callback) {
-  try {
-    return onSnapshot(collection(db, "branches"), (snapshot) => {
-      const branches = [];
-      snapshot.forEach((doc) => {
-        branches.push({ 
-          id: doc.id, 
-          ...doc.data(),
-          // Convert Firestore timestamps to JavaScript Dates
-          createdAt: doc.data().createdAt?.toDate() || new Date(),
-          updatedAt: doc.data().updatedAt?.toDate() || new Date()
-        });
-      });
-      callback(branches);
-    }, (error) => {
-      console.error("Error in branches listener:", error);
-    });
-  } catch (error) {
-    console.error("Error setting up branches listener:", error);
-    throw new Error("ریل ٹائم ڈیٹا حاصل کرنے میں ناکامی۔");
-  }
+function updateConnectionUI() {
+    const statusElement = document.getElementById('networkStatus');
+    const syncElement = document.getElementById('syncStatus');
+    
+    if (isOnline) {
+        statusElement.textContent = "آن لائن";
+        syncElement.className = "badge bg-success";
+        syncElement.textContent = "متصّل";
+        syncNowBtn.disabled = false;
+    } else {
+        statusElement.textContent = "آف لائن";
+        syncElement.className = "badge bg-danger";
+        syncElement.textContent = "منقطع";
+        syncNowBtn.disabled = true;
+    }
 }
 
-/**
- * Checks Firebase connection status
- * @returns {Promise<boolean>} True if connected, false otherwise
- */
-async function checkFirebaseConnection() {
-  try {
-    // Attempt a simple read operation to test connection
-    await new Promise((resolve, reject) => {
-      const unsubscribe = onSnapshot(collection(db, "branches"), 
-        () => {
-          unsubscribe();
-          resolve(true);
-        },
-        (error) => {
-          unsubscribe();
-          reject(error);
+// Data Synchronization
+async function processSyncQueue() {
+    if (syncInProgress || !isOnline) return;
+    
+    syncInProgress = true;
+    syncNowBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> مطابقت پذیری ہو رہی ہے...';
+    
+    try {
+        const pendingItems = await localDB.syncQueue.toArray();
+        if (pendingItems.length === 0) {
+            updateSyncStatus();
+            return;
         }
-      );
-    });
-    return true;
-  } catch (error) {
-    console.error("Firebase connection check failed:", error);
-    return false;
-  }
+
+        for (const item of pendingItems) {
+            try {
+                await processSyncItem(item);
+                await localDB.syncQueue.delete(item.id);
+            } catch (error) {
+                console.error(`Sync failed for item ${item.id}:`, error);
+                await localDB.syncQueue.update(item.id, { 
+                    attempts: (item.attempts || 0) + 1,
+                    lastError: error.message
+                });
+            }
+        }
+
+        showBanner("مطابقت پذیری کامیاب!", "alert-success");
+    } catch (error) {
+        console.error("Sync process failed:", error);
+        showBanner("مطابقت پذیری میں خرابی", "alert-danger");
+    } finally {
+        syncInProgress = false;
+        syncNowBtn.innerHTML = '<i class="fas fa-sync-alt"></i> فوری مطابقت پذیری';
+        await loadBranches();
+    }
 }
 
-// Export the functions to be used in other files
-export { 
-  db,
-  addBranch,
-  updateBranch,
-  deleteBranch,
-  setupBranchesListener,
-  checkFirebaseConnection
-};
+async function processSyncItem(item) {
+    // Implementation depends on your Firestore operations
+    // Example for branch addition:
+    if (item.action === "ADD_BRANCH") {
+        const docRef = await addDoc(collection(db, "branches"), item.data);
+        await localDB.branches.update(item.data.localId, {
+            firebaseId: docRef.id,
+            isSynced: true,
+            lastUpdated: new Date().toISOString()
+        });
+    }
+    // Similar implementations for UPDATE and DELETE
+}
+
+// [Additional helper functions for UI rendering, event handling, etc.]
+
+// Export functions needed in HTML
+window.editBranch = editBranch;
+window.deleteBranch = deleteBranch;
+window.dismissBanner = dismissBanner;

@@ -1,129 +1,139 @@
-import { db } from './firebase-config.js';
-
-// Initialize local database
-const localDB = new Dexie("MuradMasalaLocalDB");
-localDB.version(2).stores({
-    branches: "++id,name,address,image,isDefault,firebaseId,isSynced,lastUpdated",
-    syncQueue: "++id,action,collection,data,createdAt,attempts",
-    appState: "key,value"
-});
-
-// UI Elements
-const connectionBanner = document.getElementById('connectionBanner');
-const connectionStatus = document.getElementById('connectionStatus');
-const syncNowBtn = document.getElementById('syncNowBtn');
-const branchesTable = document.getElementById('branchesTable');
-const branchFormContainer = document.getElementById('branchFormContainer');
-
-// App State
-let isOnline = navigator.onLine;
-let activeListeners = [];
-let syncInProgress = false;
-
-// Initialize App
-document.addEventListener('DOMContentLoaded', initApp);
-
-async function initApp() {
-    setupNetworkMonitoring();
-    renderBranchForm();
-    await loadBranches();
-    setupFirestoreListeners();
-    startSyncInterval();
-    checkInitialSync();
-}
-
-// Network Management
-function setupNetworkMonitoring() {
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    updateConnectionUI();
-}
-
-function handleOnline() {
-    isOnline = true;
-    updateConnectionUI();
-    showBanner("آن لائن: تبدیلیاں خودکار طور پر مطابقت پذیر ہو رہی ہیں", "alert-success");
-    processSyncQueue();
-}
-
-function handleOffline() {
-    isOnline = false;
-    updateConnectionUI();
-    showBanner("آف لائن: تبدیلیاں مقامی طور پر محفوظ ہو رہی ہیں", "alert-warning");
-}
-
-function updateConnectionUI() {
-    const statusElement = document.getElementById('networkStatus');
-    const syncElement = document.getElementById('syncStatus');
+// بہتر سنک کرنے کا فنکشن
+async function syncWithFirebase() {
+  try {
+    // سنک کی حالت اپڈیٹ کریں
+    updateSyncStatus('سنک شروع ہو رہی ہے...', 'info');
     
-    if (isOnline) {
-        statusElement.textContent = "آن لائن";
-        syncElement.className = "badge bg-success";
-        syncElement.textContent = "متصّل";
-        syncNowBtn.disabled = false;
-    } else {
-        statusElement.textContent = "آف لائن";
-        syncElement.className = "badge bg-danger";
-        syncElement.textContent = "منقطع";
-        syncNowBtn.disabled = true;
+    // مقامی ڈیٹا بیس سے پینڈنگ آئٹمز حاصل کریں
+    const pendingItems = await localDB.syncQueue.toArray();
+    
+    if (pendingItems.length === 0) {
+      updateSyncStatus('کوئی سنک باقی نہیں', 'success');
+      return;
     }
-}
 
-// Data Synchronization
-async function processSyncQueue() {
-    if (syncInProgress || !isOnline) return;
-    
-    syncInProgress = true;
-    syncNowBtn.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> مطابقت پذیری ہو رہی ہے...';
-    
-    try {
-        const pendingItems = await localDB.syncQueue.toArray();
-        if (pendingItems.length === 0) {
-            updateSyncStatus();
-            return;
-        }
-
-        for (const item of pendingItems) {
-            try {
-                await processSyncItem(item);
-                await localDB.syncQueue.delete(item.id);
-            } catch (error) {
-                console.error(`Sync failed for item ${item.id}:`, error);
-                await localDB.syncQueue.update(item.id, { 
-                    attempts: (item.attempts || 0) + 1,
-                    lastError: error.message
-                });
+    // ہر آئٹم کو سنک کریں
+    for (const item of pendingItems) {
+      try {
+        switch (item.action) {
+          case "ADD":
+            // فائر بیس میں ڈیٹا شامل کریں
+            const docRef = await addDoc(collection(db, item.collection), item.data);
+            
+            // مقامی ڈیٹا بیس کو اپڈیٹ کریں
+            await localDB.branches.update(item.data.id, {
+              firebaseId: docRef.id,
+              isSynced: true,
+              lastUpdated: new Date().toISOString()
+            });
+            break;
+            
+          case "UPDATE":
+            // فائر بیس میں ڈیٹا اپڈیٹ کریں
+            await updateDoc(doc(db, item.collection, item.data.firebaseId), item.data);
+            
+            // مقامی ڈیٹا بیس کو اپڈیٹ کریں
+            await localDB.branches.update(item.data.id, {
+              isSynced: true,
+              lastUpdated: new Date().toISOString()
+            });
+            break;
+            
+          case "DELETE":
+            // فائر بیس سے ڈیٹا حذف کریں
+            if (item.data.firebaseId) {
+              await deleteDoc(doc(db, item.collection, item.data.firebaseId));
             }
+            break;
         }
-
-        showBanner("مطابقت پذیری کامیاب!", "alert-success");
-    } catch (error) {
-        console.error("Sync process failed:", error);
-        showBanner("مطابقت پذیری میں خرابی", "alert-danger");
-    } finally {
-        syncInProgress = false;
-        syncNowBtn.innerHTML = '<i class="fas fa-sync-alt"></i> فوری مطابقت پذیری';
-        await loadBranches();
-    }
-}
-
-async function processSyncItem(item) {
-    // Implementation depends on your Firestore operations
-    // Example for branch addition:
-    if (item.action === "ADD_BRANCH") {
-        const docRef = await addDoc(collection(db, "branches"), item.data);
-        await localDB.branches.update(item.data.localId, {
-            firebaseId: docRef.id,
-            isSynced: true,
-            lastUpdated: new Date().toISOString()
+        
+        // سنک کیو سے آئٹم حذف کریں
+        await localDB.syncQueue.delete(item.id);
+        
+      } catch (error) {
+        console.error(`سنک میں خرابی (${item.action}):`, error);
+        
+        // کوششوں کی تعداد بڑھائیں
+        await localDB.syncQueue.update(item.id, {
+          attempts: (item.attempts || 0) + 1,
+          lastError: error.message,
+          lastAttempt: new Date().toISOString()
         });
+        
+        // اگر کوششوں کی تعداد 3 سے زیادہ ہو تو اسکپ کریں
+        if (item.attempts >= 3) {
+          await localDB.syncQueue.delete(item.id);
+        }
+      }
     }
-    // Similar implementations for UPDATE and DELETE
+    
+    updateSyncStatus('سنک مکمل ہو گئی', 'success');
+    await loadBranches();
+    
+  } catch (error) {
+    console.error('سنک میں بڑی خرابی:', error);
+    updateSyncStatus('سنک میں خرابی', 'danger');
+  }
 }
 
-// [Additional helper functions for UI rendering, event handling, etc.]
+// سنک کی حالت دکھانے کا فنکشن
+function updateSyncStatus(message, type) {
+  const statusElement = document.getElementById('syncStatus');
+  statusElement.textContent = message;
+  statusElement.className = `alert alert-${type}`;
+  
+  // 5 سیکنڈ بعد میسج ختم کریں
+  if (type !== 'info') {
+    setTimeout(() => {
+      statusElement.textContent = '';
+      statusElement.className = 'alert';
+    }, 5000);
+  }
+}
 
-// Export functions needed in HTML
-window.editBranch = editBranch;
-window.deleteBranch = deleteBranch;
-window.dismissBanner = dismissBanner;
+// نیٹورک کنکشن چیک کرنے کا بہتر طریقہ
+async function checkNetworkConnection() {
+  try {
+    // چھوٹی سی فائل ڈاؤنلوڈ کر کے چیک کریں
+    const response = await fetch('https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js', {
+      method: 'HEAD',
+      cache: 'no-store'
+    });
+    
+    return response.ok;
+  } catch (error) {
+    return false;
+  }
+}
+
+// ڈیٹا شامل کرنے کا بہتر طریقہ
+async function addBranch(branchData) {
+  try {
+    // پہلے مقامی ڈیٹا بیس میں شامل کریں
+    const id = await localDB.branches.add({
+      ...branchData,
+      isSynced: false,
+      createdAt: new Date().toISOString(),
+      lastUpdated: new Date().toISOString()
+    });
+    
+    // سنک کیو میں شامل کریں
+    await localDB.syncQueue.add({
+      action: "ADD",
+      collection: "branches",
+      data: { ...branchData, id },
+      createdAt: new Date().toISOString(),
+      attempts: 0
+    });
+    
+    // اگر آنلائن ہے تو فوری سنک کریں
+    if (navigator.onLine && await checkNetworkConnection()) {
+      await syncWithFirebase();
+    }
+    
+    return id;
+  } catch (error) {
+    console.error('برانچ شامل کرنے میں خرابی:', error);
+    throw error;
+  }
+}

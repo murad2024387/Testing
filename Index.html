@@ -3,70 +3,266 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Firestore App</title>
+  <title>Murad Masala - Branch Manager</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      line-height: 1.6;
-      margin: 0;
-      padding: 20px;
-      max-width: 1200px;
-      margin: 0 auto;
+    :root {
+      --primary: #d32f2f;
+      --primary-dark: #b71c1c;
+      --secondary: #f5f5f5;
+      --text: #333;
+      --text-light: #666;
+      --online: #d4edda;
+      --offline: #f8d7da;
+      --success: #28a745;
+      --warning: #ffc107;
+      --danger: #dc3545;
     }
     
-    #connection-status {
-      padding: 10px;
-      margin-bottom: 20px;
-      border-radius: 4px;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    
+    body {
+      background-color: #f9f9f9;
+      color: var(--text);
+      line-height: 1.6;
+      padding: 0;
+      margin: 0;
+    }
+    
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    
+    .status {
+      padding: 0.75rem;
+      margin: 1rem 0;
+      border-radius: 5px;
+      text-align: center;
       font-weight: bold;
     }
     
-    .online {
-      background-color: #d4edda;
+    .online { background-color: var(--online); color: #155724; }
+    .offline { background-color: var(--offline); color: #721c24; }
+    
+    .card {
+      background: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    
+    .form-group {
+      margin-bottom: 1rem;
+    }
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    
+    input, textarea, select {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 1rem;
+      transition: border 0.3s;
+    }
+    
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+    
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background 0.3s;
+    }
+    
+    button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    button:disabled {
+      background-color: #ccc;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #5a6268;
+    }
+    
+    .btn-danger {
+      background-color: var(--danger);
+    }
+    
+    .btn-danger:hover {
+      background-color: #c82333;
+    }
+    
+    .branch-list {
+      margin-top: 1.5rem;
+    }
+    
+    .branch-item {
+      background: white;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 5px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      border-left: 4px solid var(--primary);
+    }
+    
+    .branch-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    
+    .branch-name {
+      font-weight: 700;
+      color: var(--primary);
+      font-size: 1.1rem;
+    }
+    
+    .branch-address {
+      color: var(--text-light);
+      margin-bottom: 0.5rem;
+    }
+    
+    .branch-phone {
+      font-weight: 600;
+    }
+    
+    .branch-manager {
+      margin-top: 0.5rem;
+      font-style: italic;
+    }
+    
+    .branch-actions {
+      margin-top: 1rem;
+      display: flex;
+      gap: 0.5rem;
+    }
+    
+    .alert {
+      padding: 0.75rem;
+      border-radius: 5px;
+      margin-bottom: 1rem;
+    }
+    
+    .alert-success {
+      background-color: var(--online);
       color: #155724;
     }
     
-    .offline {
-      background-color: #f8d7da;
+    .alert-danger {
+      background-color: var(--offline);
       color: #721c24;
     }
     
-    .data-item {
-      border: 1px solid #ddd;
-      padding: 15px;
-      margin-bottom: 10px;
-      border-radius: 4px;
-    }
-    
-    .error {
-      color: #721c24;
-      background-color: #f8d7da;
-      padding: 10px;
-      border-radius: 4px;
+    @media (max-width: 768px) {
+      .container {
+        padding: 0.5rem;
+      }
+      
+      .card {
+        padding: 1rem;
+      }
+      
+      button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+      
+      .branch-actions {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <h1>Firebase Firestore App</h1>
+  <header>
+    <h1><i class="fas fa-store-alt"></i> Murad Masala Branch Manager</h1>
+  </header>
   
-  <div id="connection-status">Checking connection...</div>
-  
-  <div id="app">
-    <h2>Data from Firestore:</h2>
-    <div id="data-container">
-      <p>Loading data...</p>
+  <div class="container">
+    <div id="connection-status" class="status offline">
+      <i class="fas fa-sync-alt fa-spin"></i> Connecting to database...
+    </div>
+    
+    <div class="card">
+      <h2><i class="fas fa-plus-circle"></i> Add/Edit Branch</h2>
+      <div id="alert-message"></div>
+      
+      <form id="branch-form">
+        <div class="form-group">
+          <label for="branch-name"><i class="fas fa-signature"></i> Branch Name</label>
+          <input type="text" id="branch-name" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="branch-address"><i class="fas fa-map-marker-alt"></i> Address</label>
+          <textarea id="branch-address" rows="3" required></textarea>
+        </div>
+        
+        <div class="form-group">
+          <label for="branch-phone"><i class="fas fa-phone"></i> Phone Number</label>
+          <input type="tel" id="branch-phone" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="branch-manager"><i class="fas fa-user-tie"></i> Manager Name</label>
+          <input type="text" id="branch-manager">
+        </div>
+        
+        <div class="form-group">
+          <button type="submit" id="save-btn"><i class="fas fa-save"></i> Save Branch</button>
+          <button type="button" id="cancel-btn" class="btn-secondary" style="display: none;">
+            <i class="fas fa-times"></i> Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+    
+    <div class="card">
+      <h2><i class="fas fa-store"></i> Branch List</h2>
+      <div id="branch-list" class="branch-list">
+        <p><i class="fas fa-spinner fa-spin"></i> Loading branches...</p>
+      </div>
     </div>
   </div>
 
   <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-database-compat.js"></script>
-  
-  <!-- Dexie.js for IndexedDB -->
-  <script src="https://unpkg.com/dexie@latest/dist/dexie.js"></script>
-  
-  <!-- App scripts -->
   <script type="module" src="firebase.config.js"></script>
   <script type="module" src="app.js"></script>
 </body>

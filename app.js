@@ -1,11 +1,12 @@
 // Initialize Firebase with your config
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
+  authDomain: "muradapps-dbe17.firebaseapp.com",
+  projectId: "muradapps-dbe17",
+  storageBucket: "muradapps-dbe17.appspot.com",
+  messagingSenderId: "117855279460",
+  appId: "1:117855279460:web:3403584abd902e5d628271",
+  measurementId: "G-8ZY9T7HFWE"
 };
 
 // Initialize Firebase

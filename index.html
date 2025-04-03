@@ -195,14 +195,7 @@
     // =====================
     // Firebase Configuration
     // =====================
-    const firebaseConfig = {
-      apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
-      authDomain: "muradapps-dbe17.firebaseapp.com",
-      projectId: "muradapps-dbe17",
-      storageBucket: "muradapps-dbe17.firebasestorage.app",
-      messagingSenderId: "117855279460",
-      appId: "1:117855279460:web:3403584abd902e5d628271"
-    };
+   
 
     // Initialize Firebase
     const app = firebase.initializeApp(firebaseConfig);
@@ -348,7 +341,14 @@
           setTimeout(setupBranchesListener, 5000);
         });
     }
-
+const firebaseConfig = {
+  apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
+  authDomain: "muradapps-dbe17.firebaseapp.com",
+  projectId: "muradapps-dbe17",
+  storageBucket: "muradapps-dbe17.appspot.com", // Note: Removed 'firebasestorage' from domain
+  messagingSenderId: "117855279460",
+  appId: "1:117855279460:web:3403584abd902e5d628271"
+};
     // =============
     // UI Rendering
     // =============

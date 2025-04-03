@@ -4,107 +4,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>مراد مسالا - برانچ مینجمنٹ</title>
+    
+    <!-- Bootstrap RTL CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.rtl.min.css" rel="stylesheet">
+    
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK (compat version) -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-firestore-compat.js"></script>
+    
     <style>
         :root {
             --primary-color: #8B0000;
             --offline-color: #dc3545;
             --online-color: #28a745;
-            --pending-color: #ffc107;
         }
+        
         body {
             font-family: 'Segoe UI', 'Nafees Nastaleeq', Tahoma, sans-serif;
             background-color: #f8f9fa;
+            padding-top: 20px;
         }
-        .connection-banner {
+        
+        .logo-container {
+            height: 80px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+        
+        .connection-status {
             position: sticky;
             top: 0;
             z-index: 1000;
         }
-        .sync-pending {
-            animation: pulse 2s infinite;
+        
+        .sync-btn {
+            transition: all 0.3s;
         }
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
+        
+        .sync-btn .spinner {
+            display: none;
         }
+        
+        .sync-btn.syncing .spinner {
+            display: inline-block;
+        }
+        
+        .sync-btn.syncing .text {
+            display: none;
+        }
+        
         .branch-image {
             width: 60px;
             height: 60px;
             object-fit: cover;
             border-radius: 50%;
+            background-color: #eee;
+        }
+        
+        .action-btns .btn {
+            margin: 0 3px;
+            white-space: nowrap;
+        }
+        
+        @media (max-width: 768px) {
+            .action-btns .btn {
+                margin: 2px 0;
+                display: block;
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
     <!-- Connection Status Banner -->
-    <div id="connectionBanner" class="connection-banner alert alert-dismissible mb-0 text-center">
-        <span id="connectionStatus"></span>
-        <button type="button" class="btn-close" onclick="dismissBanner()"></button>
+    <div id="connectionStatus" class="connection-status alert alert-dismissible fade show mb-4" role="alert">
+        <div class="d-flex justify-content-between align-items-center">
+            <span id="connectionText">کنکشن کی حالت چیک ہو رہی ہے...</span>
+            <button type="button" class="btn-close" onclick="dismissAlert()"></button>
+        </div>
     </div>
 
-    <div class="container py-4">
+    <div class="container">
         <!-- Header -->
         <div class="text-center mb-4">
-            <img src="assets/logo.png" alt="مراد مسالا لوگو" style="height: 80px">
-            <h1 class="mt-2">برانچ مینجمنٹ سسٹم</h1>
+            <div class="logo-container">
+                <span class="logo-text">مراد مسالا</span>
+            </div>
+            <h1>برانچ مینجمنٹ سسٹم</h1>
         </div>
 
-        <!-- Action Cards -->
+        <!-- Stats Cards -->
         <div class="row mb-4">
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="fas fa-network-wired fa-3x mb-3"></i>
-                        <h5 id="networkStatus">کنکشن کی حالت</h5>
-                        <div id="syncStatus" class="badge bg-secondary">جانچ ہو رہی ہے...</div>
+                        <i class="fas fa-network-wired fa-3x mb-3 text-primary"></i>
+                        <h5>کنکشن کی حالت</h5>
+                        <div id="networkStatus" class="badge bg-secondary">جانچ ہو رہی ہے...</div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="fas fa-database fa-3x mb-3"></i>
+                        <i class="fas fa-database fa-3x mb-3 text-info"></i>
                         <h5>مقامی ڈیٹا</h5>
-                        <div id="localDataStatus" class="badge bg-secondary">لوڈ ہو رہا ہے...</div>
+                        <div id="localDataStatus" class="badge bg-secondary">0 برانچز</div>
                     </div>
                 </div>
             </div>
             <div class="col-md-4 mb-3">
                 <div class="card h-100">
                     <div class="card-body text-center">
-                        <i class="fas fa-cloud fa-3x mb-3"></i>
+                        <i class="fas fa-cloud fa-3x mb-3 text-success"></i>
                         <h5>کلاؤڈ ڈیٹا</h5>
-                        <div id="cloudDataStatus" class="badge bg-secondary">کنکٹ ہو رہا ہے...</div>
+                        <div id="cloudDataStatus" class="badge bg-secondary">0 برانچز</div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Branch Management -->
-        <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+        <!-- Branch Management Card -->
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">برانچز کا انتظام</h5>
-                <button id="syncNowBtn" class="btn btn-sm btn-outline-primary">
-                    <i class="fas fa-sync-alt"></i> فوری مطابقت پذیری
+                <button id="syncNowBtn" class="btn btn-light sync-btn">
+                    <span class="text">مطابقت پذیری</span>
+                    <span class="spinner-border spinner-border-sm spinner" role="status"></span>
                 </button>
             </div>
+            
             <div class="card-body">
-                <!-- Form will be loaded by app.js -->
-                <div id="branchFormContainer" class="mb-4"></div>
+                <!-- Branch Form -->
+                <form id="branchForm" class="mb-4">
+                    <input type="hidden" id="editId">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="branchName" class="form-label">برانچ کا نام</label>
+                            <input type="text" class="form-control" id="branchName" required>
+                        </div>
+                        <div class="col-md-5 mb-3">
+                            <label for="branchAddress" class="form-label">پتہ</label>
+                            <input type="text" class="form-control" id="branchAddress" required>
+                        </div>
+                        <div class="col-md-2 mb-3 d-flex align-items-end">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="isDefault">
+                                <label class="form-check-label" for="isDefault">ڈیفالٹ برانچ</label>
+                            </div>
+                        </div>
+                        <div class="col-md-1 mb-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <span id="submitBtnText">شامل کریں</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
                 
                 <!-- Branches Table -->
                 <div class="table-responsive">
                     <table class="table table-hover">
                         <thead class="table-light">
                             <tr>
-                                <th>تصویر</th>
+                                <th width="80px">تصویر</th>
                                 <th>نام</th>
                                 <th>پتہ</th>
-                                <th>حالت</th>
-                                <th>عملیات</th>
+                                <th width="120px">حالت</th>
+                                <th width="150px">عملیات</th>
                             </tr>
                         </thead>
                         <tbody id="branchesTable">
@@ -121,18 +200,45 @@
             </div>
         </div>
     </div>
-<!-- Optimal image implementation -->
-<picture>
-    <source srcset="assets/logo.webp" type="image/webp">
-    <source srcset="assets/logo.png" type="image/png"> 
-    <img src="assets/logo.png" alt="مراد مسالا لوگو" 
-         style="height: 80px; object-fit: contain"
-         loading="lazy">
-</picture>
-    <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Dexie for IndexedDB -->
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>
-    <script type="module" src="firebase-config.js"></script>
-    <script type="module" src="app.js"></script>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- App JS -->
+    <script>
+        // Initialize Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyBEtLS0v4FJpHy11OsFwAJMUTo4W-ZvxVs",
+            authDomain: "muradapps-dbe17.firebaseapp.com",
+            projectId: "muradapps-dbe17",
+            storageBucket: "muradapps-dbe17.appspot.com",
+            messagingSenderId: "117855279460",
+            appId: "1:117855279460:web:3403584abd902e5d628271",
+            measurementId: "G-8ZY9T7HFWE"
+        };
+        
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        
+        // Your app code will go here
+        // This will be moved to app.js after testing
+        
+        // Temporary functions for UI interaction
+        function dismissAlert() {
+            const alert = document.getElementById('connectionStatus');
+            alert.classList.remove('show');
+        }
+        
+        document.getElementById('syncNowBtn').addEventListener('click', function() {
+            this.classList.add('syncing');
+            setTimeout(() => {
+                this.classList.remove('syncing');
+            }, 2000);
+        });
+    </script>
 </body>
 </html>

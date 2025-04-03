@@ -121,7 +121,14 @@
             </div>
         </div>
     </div>
-
+<!-- Optimal image implementation -->
+<picture>
+    <source srcset="assets/logo.webp" type="image/webp">
+    <source srcset="assets/logo.png" type="image/png"> 
+    <img src="assets/logo.png" alt="مراد مسالا لوگو" 
+         style="height: 80px; object-fit: contain"
+         loading="lazy">
+</picture>
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dexie@3.2.4/dist/dexie.min.js"></script>

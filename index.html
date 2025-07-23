@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Firebase Chat with Authentication</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <title>Sindhi Billing System</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;700&family=Noto+Sans+Arabic:wght@400;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.6.0/firebase-auth-compat.js"></script>
@@ -14,7 +14,7 @@
       margin: 0;
       padding: 0;
       box-sizing: border-box;
-      font-family: 'Roboto', sans-serif;
+      font-family: 'Noto Sans', 'Noto Sans Arabic', sans-serif;
     }
     
     body {
@@ -28,8 +28,8 @@
     
     .container {
       width: 100%;
-      max-width: 900px;
-      background-color: rgba(255, 255, 255, 0.92);
+      max-width: 1200px;
+      background-color: rgba(255, 255, 255, 0.95);
       border-radius: 16px;
       box-shadow: 0 12px 30px rgba(0, 0, 0, 0.25);
       overflow: hidden;
@@ -38,9 +38,9 @@
     }
     
     header {
-      background: linear-gradient(90deg, #4285F4, #34A853);
+      background: linear-gradient(90deg, #2c3e50, #4a235a);
       color: white;
-      padding: 20px;
+      padding: 15px 30px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -54,11 +54,18 @@
     
     .logo i {
       font-size: 28px;
+      color: #f39c12;
     }
     
     .logo h1 {
-      font-weight: 600;
+      font-weight: 700;
       font-size: 24px;
+    }
+    
+    .sindhi-text {
+      font-family: 'Noto Sans Arabic', sans-serif;
+      font-size: 22px;
+      margin-left: 10px;
     }
     
     .auth-container {
@@ -79,7 +86,7 @@
     
     .user-icon {
       background: #fff;
-      color: #4285F4;
+      color: #2c3e50;
       width: 32px;
       height: 32px;
       border-radius: 50%;
@@ -91,7 +98,7 @@
     
     .auth-btn {
       background: white;
-      color: #4285F4;
+      color: #2c3e50;
       border: none;
       padding: 10px 20px;
       border-radius: 50px;
@@ -114,19 +121,19 @@
     }
     
     .auth-btn.signout {
-      background: #EA4335;
+      background: #c0392b;
       color: white;
     }
     
     main {
       display: flex;
       flex: 1;
-      height: 500px;
+      min-height: 600px;
     }
     
     .sidebar {
       width: 250px;
-      background-color: #f5f8fa;
+      background-color: #f8f9fa;
       border-right: 1px solid #e0e6ed;
       padding: 20px;
       display: flex;
@@ -134,264 +141,366 @@
       gap: 15px;
     }
     
-    .sidebar h2 {
-      color: #2d3748;
-      font-size: 18px;
-      margin-bottom: 15px;
+    .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-    }
-    
-    .stats {
-      background: white;
-      border-radius: 12px;
-      padding: 15px;
-      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-    
-    .stat-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-bottom: 1px solid #edf2f7;
-    }
-    
-    .stat-item:last-child {
-      border-bottom: none;
-    }
-    
-    .stat-label {
-      color: #718096;
+      gap: 12px;
+      padding: 12px 15px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.3s;
+      color: #2c3e50;
       font-weight: 500;
     }
     
-    .stat-value {
-      color: #2d3748;
+    .nav-item:hover {
+      background: #e9ecef;
+    }
+    
+    .nav-item.active {
+      background: #d6e4f0;
+      color: #2980b9;
       font-weight: 600;
     }
     
-    .chat-container {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
+    .nav-item i {
+      font-size: 18px;
+      width: 24px;
+      text-align: center;
     }
     
-    .messages {
+    .content {
       flex: 1;
       padding: 20px;
       overflow-y: auto;
       background-color: #f0f4f8;
     }
     
-    .message {
-      background: white;
-      border-radius: 12px;
-      padding: 12px 16px;
-      margin-bottom: 15px;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-      max-width: 80%;
-      animation: fadeIn 0.3s ease;
+    .page {
+      display: none;
     }
     
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
+    .page.active {
+      display: block;
     }
     
-    .message.sent {
-      background: #4285F4;
-      color: white;
-      margin-left: auto;
-    }
-    
-    .message-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 6px;
-      font-size: 14px;
-    }
-    
-    .message-sender {
-      font-weight: 600;
-    }
-    
-    .message-time {
-      opacity: 0.8;
-      font-size: 12px;
-    }
-    
-    .message-content {
-      line-height: 1.4;
-    }
-    
-    .input-container {
-      display: flex;
-      padding: 20px;
-      background: white;
-      border-top: 1px solid #e0e6ed;
-    }
-    
-    .message-input {
-      flex: 1;
-      padding: 14px 18px;
-      border: 2px solid #e0e6ed;
-      border-radius: 12px;
-      font-size: 16px;
-      outline: none;
-      transition: border-color 0.3s;
-    }
-    
-    .message-input:focus {
-      border-color: #4285F4;
-    }
-    
-    .send-button {
-      background: #4285F4;
-      color: white;
-      border: none;
-      border-radius: 12px;
-      padding: 0 25px;
-      margin-left: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .send-button:hover {
-      background: #3367D6;
-    }
-    
-    .send-button:disabled {
-      background: #a0aec0;
-      cursor: not-allowed;
-    }
-    
-    .welcome-screen {
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      text-align: center;
-      padding: 40px;
-      flex: 1;
-      background: #f0f4f8;
-    }
-    
-    .welcome-screen h2 {
-      color: #2d3748;
-      font-size: 32px;
-      margin-bottom: 20px;
-    }
-    
-    .welcome-screen p {
-      color: #4a5568;
-      font-size: 18px;
-      max-width: 500px;
-      line-height: 1.6;
-      margin-bottom: 30px;
-    }
-    
-    .features {
-      display: flex;
-      gap: 30px;
-      margin-top: 30px;
-    }
-    
-    .feature {
+    .form-section {
       background: white;
       border-radius: 12px;
       padding: 25px;
-      width: 200px;
-      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+      margin-bottom: 25px;
     }
     
-    .feature i {
-      font-size: 36px;
-      color: #4285F4;
-      margin-bottom: 15px;
-    }
-    
-    .feature h3 {
-      color: #2d3748;
-      margin-bottom: 10px;
-    }
-    
-    .feature p {
-      color: #718096;
-      font-size: 14px;
-      margin-bottom: 0;
-    }
-    
-    .status-bar {
-      background: #f5f8fa;
-      border-top: 1px solid #e0e6ed;
-      padding: 12px 20px;
+    .section-title {
+      color: #2c3e50;
+      font-size: 22px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #eee;
       display: flex;
-      justify-content: space-between;
-      color: #718096;
-      font-size: 14px;
+      align-items: center;
+      gap: 10px;
     }
     
-    .connection-status {
+    .section-title i {
+      color: #2980b9;
+    }
+    
+    .form-row {
       display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .form-group {
+      flex: 1;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: #2c3e50;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 12px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    
+    .form-control:focus {
+      border-color: #2980b9;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.2);
+    }
+    
+    .table-container {
+      overflow-x: auto;
+      margin-top: 20px;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+    
+    th, td {
+      padding: 12px 15px;
+      text-align: left;
+      border-bottom: 1px solid #eee;
+    }
+    
+    th {
+      background-color: #2c3e50;
+      color: white;
+      font-weight: 600;
+    }
+    
+    tr:hover {
+      background-color: #f5f9ff;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
     }
     
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #48BB78;
+    .btn-primary {
+      background: #2980b9;
+      color: white;
     }
     
-    .status-dot.offline {
-      background: #E53E3E;
+    .btn-primary:hover {
+      background: #2471a3;
     }
     
-    .loading {
+    .btn-success {
+      background: #27ae60;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #219653;
+    }
+    
+    .btn-danger {
+      background: #c0392b;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #a93226;
+    }
+    
+    .actions {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 20px;
+    }
+    
+    .invoice-preview {
+      background: white;
+      border: 1px solid #ddd;
+      padding: 30px;
+      margin-top: 30px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      max-width: 800px;
+      margin: 30px auto;
+    }
+    
+    .invoice-header {
+      text-align: center;
+      margin-bottom: 30px;
+      border-bottom: 2px solid #2c3e50;
+      padding-bottom: 20px;
+    }
+    
+    .invoice-header h2 {
+      font-size: 28px;
+      color: #2c3e50;
+      margin-bottom: 10px;
+    }
+    
+    .invoice-header .sindhi {
+      font-family: 'Noto Sans Arabic', sans-serif;
+      font-size: 24px;
+      color: #4a235a;
+    }
+    
+    .invoice-details {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 30px;
+    }
+    
+    .invoice-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+    
+    .invoice-table th {
+      background: #2c3e50;
+      color: white;
+      padding: 12px;
+      text-align: left;
+    }
+    
+    .invoice-table td {
+      padding: 12px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .invoice-summary {
+      margin-top: 30px;
+      display: flex;
+      justify-content: flex-end;
+    }
+    
+    .summary-table {
+      width: 300px;
+      border-collapse: collapse;
+    }
+    
+    .summary-table td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    
+    .summary-table tr:last-child td {
+      border-bottom: none;
+      font-weight: bold;
+      font-size: 18px;
+      color: #2c3e50;
+    }
+    
+    .print-actions {
+      text-align: center;
+      margin-top: 30px;
+    }
+    
+    .print-only {
+      display: none;
+    }
+    
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      .invoice-preview, .invoice-preview * {
+        visibility: visible;
+      }
+      .invoice-preview {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        box-shadow: none;
+        border: none;
+      }
+      .no-print {
+        display: none;
+      }
+      .print-only {
+        display: block;
+      }
+    }
+    
+    .language-toggle {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 8px 15px;
+      border-radius: 50px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+    }
+    
+    .welcome-message {
       text-align: center;
       padding: 40px;
-      color: #4a5568;
     }
     
-    .loading i {
+    .welcome-message h2 {
       font-size: 36px;
+      color: #2c3e50;
       margin-bottom: 20px;
-      color: #4285F4;
-      animation: spin 1.5s linear infinite;
     }
     
-    @keyframes spin {
-      100% { transform: rotate(360deg); }
+    .welcome-message p {
+      font-size: 18px;
+      color: #4a5568;
+      max-width: 700px;
+      margin: 0 auto 30px;
+      line-height: 1.6;
     }
     
-    @media (max-width: 768px) {
-      main {
-        flex-direction: column;
-        height: auto;
-      }
-      
-      .sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid #e0e6ed;
-      }
-      
-      .features {
-        flex-direction: column;
-        align-items: center;
-      }
+    .features {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    
+    .feature-card {
+      background: white;
+      border-radius: 12px;
+      padding: 25px;
+      width: 250px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.08);
+      text-align: center;
+    }
+    
+    .feature-card i {
+      font-size: 42px;
+      color: #2980b9;
+      margin-bottom: 20px;
+    }
+    
+    .feature-card h3 {
+      color: #2c3e50;
+      margin-bottom: 15px;
+      font-size: 20px;
+    }
+    
+    .feature-card p {
+      color: #718096;
+      font-size: 15px;
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="language-toggle" id="languageToggle">
+    <i class="fas fa-language"></i> English / سنڌي
+  </div>
+  
+  <div class="container" id="appContainer">
     <header>
       <div class="logo">
-        <i class="fas fa-comments"></i>
-        <h1>Firebase Chat</h1>
+        <i class="fas fa-file-invoice-dollar"></i>
+        <h1>Sindhi Billing System <span class="sindhi">سنڌي بلنگ سسٽم</span></h1>
       </div>
       <div class="auth-container">
         <div class="user-info" id="userInfo" style="display: none;">
@@ -399,86 +508,347 @@
           <span id="userName">User</span>
         </div>
         <button id="authButton" class="auth-btn">
-          <i class="fab fa-google"></i>
-          <span>Sign in with Google</span>
+          <i class="fas fa-sign-in-alt"></i>
+          <span>Login / Register</span>
         </button>
       </div>
     </header>
     
     <main>
-      <div class="sidebar">
-        <h2><i class="fas fa-chart-bar"></i> Dashboard</h2>
-        <div class="stats">
-          <div class="stat-item">
-            <span class="stat-label">Online Users</span>
-            <span class="stat-value" id="onlineUsers">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Messages Sent</span>
-            <span class="stat-value" id="messagesSent">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Your Messages</span>
-            <span class="stat-value" id="yourMessages">0</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Active Now</span>
-            <span class="stat-value" id="activeNow">0</span>
-          </div>
+      <div class="sidebar" id="sidebar" style="display: none;">
+        <div class="nav-item active" data-page="dashboard">
+          <i class="fas fa-home"></i>
+          <span>Dashboard</span>
         </div>
-        
-        <h2><i class="fas fa-users"></i> Online Now</h2>
-        <div class="stats">
-          <div class="stat-item">
-            <span class="stat-label">John Doe</span>
-            <span class="stat-value">Online</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Jane Smith</span>
-            <span class="stat-value">Online</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">Mike Johnson</span>
-            <span class="stat-value">Online</span>
-          </div>
+        <div class="nav-item" data-page="createBill">
+          <i class="fas fa-file-invoice"></i>
+          <span>Create Bill</span>
+        </div>
+        <div class="nav-item" data-page="bills">
+          <i class="fas fa-history"></i>
+          <span>Bill History</span>
+        </div>
+        <div class="nav-item" data-page="customers">
+          <i class="fas fa-users"></i>
+          <span>Customers</span>
+        </div>
+        <div class="nav-item" data-page="products">
+          <i class="fas fa-box"></i>
+          <span>Products</span>
+        </div>
+        <div class="nav-item" data-page="reports">
+          <i class="fas fa-chart-bar"></i>
+          <span>Reports</span>
+        </div>
+        <div class="nav-item" data-page="settings">
+          <i class="fas fa-cog"></i>
+          <span>Settings</span>
         </div>
       </div>
       
-      <div class="chat-container">
-        <div class="messages" id="messagesContainer">
-          <div class="welcome-screen" id="welcomeScreen">
-            <h2>Welcome to Firebase Chat</h2>
-            <p>Sign in with Google to start chatting in real-time with other users. Your messages are securely stored in Firebase Firestore.</p>
-            <button class="auth-btn">
-              <i class="fab fa-google"></i>
-              <span>Sign in with Google</span>
-            </button>
+      <div class="content" id="content">
+        <!-- Login/Register Page -->
+        <div class="page active" id="loginPage">
+          <div class="welcome-message">
+            <h2>Welcome to Sindhi Billing System</h2>
+            <p class="sindhi">سنڌي بلنگ سسٽم ۾ خوشآمديد</p>
+            <p>Manage your business billing in both English and Sindhi with our easy-to-use system. Create professional invoices, track payments, and manage customers.</p>
             
-            <div class="features">
-              <div class="feature">
-                <i class="fas fa-shield-alt"></i>
-                <h3>Secure</h3>
-                <p>Google-authenticated and encrypted data storage</p>
+            <div class="form-section" style="max-width: 500px; margin: 40px auto;">
+              <div class="section-title">
+                <i class="fas fa-user"></i>
+                <span>Login / Register</span>
               </div>
-              <div class="feature">
-                <i class="fas fa-bolt"></i>
-                <h3>Real-time</h3>
-                <p>Instant message delivery with Firebase</p>
+              
+              <div class="form-group">
+                <label for="loginEmail">Email</label>
+                <input type="email" id="loginEmail" class="form-control" placeholder="Enter your email">
               </div>
-              <div class="feature">
-                <i class="fas fa-chart-line"></i>
-                <h3>Analytics</h3>
-                <p>Track your chat activity with our dashboard</p>
+              
+              <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" class="form-control" placeholder="Enter your password">
+              </div>
+              
+              <div class="form-group">
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="loginButton">
+                  <i class="fas fa-sign-in-alt"></i> Login
+                </button>
+              </div>
+              
+              <div style="text-align: center; margin: 20px 0;">
+                <span>OR</span>
+              </div>
+              
+              <div class="form-group">
+                <button class="btn btn-success" style="width: 100%;" id="registerButton">
+                  <i class="fas fa-user-plus"></i> Register New Account
+                </button>
+              </div>
+              
+              <div class="form-group" style="margin-top: 30px; text-align: center;">
+                <button class="auth-btn" id="googleAuthButton" style="width: 100%;">
+                  <i class="fab fa-google"></i> Sign in with Google
+                </button>
               </div>
             </div>
           </div>
         </div>
         
-        <div class="input-container" id="inputContainer" style="display: none;">
-          <input type="text" class="message-input" id="messageInput" placeholder="Type your message...">
-          <button class="send-button" id="sendButton" disabled>
-            <i class="fas fa-paper-plane"></i> Send
-          </button>
+        <!-- Dashboard Page -->
+        <div class="page" id="dashboardPage">
+          <div class="welcome-message">
+            <h2>Dashboard</h2>
+            <p>Welcome back, <span id="dashboardUserName">User</span>! Here's your business overview.</p>
+          </div>
+          
+          <div class="features">
+            <div class="feature-card">
+              <i class="fas fa-file-invoice-dollar"></i>
+              <h3>Create Invoice</h3>
+              <p>Generate professional invoices for your customers</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-history"></i>
+              <h3>Transaction History</h3>
+              <p>View all your past invoices and payments</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-chart-line"></i>
+              <h3>Sales Reports</h3>
+              <p>Analyze your business performance</p>
+            </div>
+            <div class="feature-card">
+              <i class="fas fa-cog"></i>
+              <h3>System Settings</h3>
+              <p>Customize your billing preferences</p>
+            </div>
+          </div>
+          
+          <div class="form-section">
+            <div class="section-title">
+              <i class="fas fa-chart-bar"></i>
+              <span>Recent Activity</span>
+            </div>
+            
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Invoice #</th>
+                    <th>Customer</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>2023-07-25</td>
+                    <td>INV-00123</td>
+                    <td>Ali Khan</td>
+                    <td>Rs. 5,250</td>
+                    <td><span style="color: #27ae60; font-weight: bold;">Paid</span></td>
+                  </tr>
+                  <tr>
+                    <td>2023-07-24</td>
+                    <td>INV-00122</td>
+                    <td>Fatima Enterprises</td>
+                    <td>Rs. 12,800</td>
+                    <td><span style="color: #e67e22; font-weight: bold;">Pending</span></td>
+                  </tr>
+                  <tr>
+                    <td>2023-07-22</td>
+                    <td>INV-00121</td>
+                    <td>Rehman Store</td>
+                    <td>Rs. 7,340</td>
+                    <td><span style="color: #27ae60; font-weight: bold;">Paid</span></td>
+                  </tr>
+                  <tr>
+                    <td>2023-07-20</td>
+                    <td>INV-00120</td>
+                    <td>Bismillah Traders</td>
+                    <td>Rs. 18,500</td>
+                    <td><span style="color: #c0392b; font-weight: bold;">Overdue</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Create Bill Page -->
+        <div class="page" id="createBillPage">
+          <div class="form-section">
+            <div class="section-title">
+              <i class="fas fa-file-invoice"></i>
+              <span>Create New Bill</span>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="billNumber">Bill Number</label>
+                <input type="text" id="billNumber" class="form-control" value="INV-00124" readonly>
+              </div>
+              <div class="form-group">
+                <label for="billDate">Date</label>
+                <input type="date" id="billDate" class="form-control" value="2023-07-26">
+              </div>
+            </div>
+            
+            <div class="form-row">
+              <div class="form-group">
+                <label for="customerName">Customer Name</label>
+                <input type="text" id="customerName" class="form-control" placeholder="Enter customer name">
+              </div>
+              <div class="form-group">
+                <label for="customerPhone">Phone Number</label>
+                <input type="text" id="customerPhone" class="form-control" placeholder="Enter phone number">
+              </div>
+            </div>
+            
+            <div class="form-group">
+              <label for="customerAddress">Address</label>
+              <textarea id="customerAddress" class="form-control" rows="2" placeholder="Enter customer address"></textarea>
+            </div>
+            
+            <div class="table-container">
+              <table id="itemsTable">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Item Description</th>
+                    <th>Quantity</th>
+                    <th>Price (Rs.)</th>
+                    <th>Total (Rs.)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>1</td>
+                    <td><input type="text" class="form-control" placeholder="Item name"></td>
+                    <td><input type="number" class="form-control" value="1" min="1"></td>
+                    <td><input type="number" class="form-control" value="0" min="0" step="0.01"></td>
+                    <td>0.00</td>
+                    <td><button class="btn btn-danger"><i class="fas fa-trash"></i></button></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div class="actions">
+              <button class="btn btn-success" id="addItemBtn">
+                <i class="fas fa-plus"></i> Add Item
+              </button>
+            </div>
+            
+            <div class="form-row" style="margin-top: 30px;">
+              <div class="form-group" style="flex: 2;"></div>
+              <div class="form-group" style="flex: 1;">
+                <table class="summary-table">
+                  <tr>
+                    <td>Subtotal:</td>
+                    <td>Rs. <span id="subtotal">0.00</span></td>
+                  </tr>
+                  <tr>
+                    <td>Tax (13%):</td>
+                    <td>Rs. <span id="tax">0.00</span></td>
+                  </tr>
+                  <tr>
+                    <td>Discount:</td>
+                    <td>Rs. <span id="discount">0.00</span></td>
+                  </tr>
+                  <tr>
+                    <td>Total:</td>
+                    <td>Rs. <span id="total">0.00</span></td>
+                  </tr>
+                </table>
+              </div>
+            </div>
+            
+            <div class="actions">
+              <button class="btn btn-primary" id="previewBillBtn">
+                <i class="fas fa-eye"></i> Preview Bill
+              </button>
+              <button class="btn btn-success" id="saveBillBtn">
+                <i class="fas fa-save"></i> Save Bill
+              </button>
+            </div>
+          </div>
+          
+          <!-- Invoice Preview -->
+          <div class="invoice-preview" id="invoicePreview" style="display: none;">
+            <div class="invoice-header">
+              <h2>INVOICE <span class="sindhi">بل</span></h2>
+              <p>Sindhi Billing System <span class="sindhi">سنڌي بلنگ سسٽم</span></p>
+              <p>123 Main Street, Hyderabad, Sindh</p>
+              <p>Phone: +92 123 4567890 | Email: info@sindhibilling.com</p>
+            </div>
+            
+            <div class="invoice-details">
+              <div>
+                <p><strong>Bill To:</strong></p>
+                <p id="previewCustomerName">Customer Name</p>
+                <p id="previewCustomerPhone">Phone: </p>
+                <p id="previewCustomerAddress">Address: </p>
+              </div>
+              <div>
+                <p><strong>Invoice #:</strong> <span id="previewInvoiceNumber">INV-00124</span></p>
+                <p><strong>Date:</strong> <span id="previewDate">2023-07-26</span></p>
+              </div>
+            </div>
+            
+            <table class="invoice-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Description</th>
+                  <th>Quantity</th>
+                  <th>Unit Price</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="previewItems">
+                <!-- Items will be populated here -->
+              </tbody>
+            </table>
+            
+            <div class="invoice-summary">
+              <table class="summary-table">
+                <tr>
+                  <td>Subtotal:</td>
+                  <td>Rs. <span id="previewSubtotal">0.00</span></td>
+                </tr>
+                <tr>
+                  <td>Tax (13%):</td>
+                  <td>Rs. <span id="previewTax">0.00</span></td>
+                </tr>
+                <tr>
+                  <td>Discount:</td>
+                  <td>Rs. <span id="previewDiscount">0.00</span></td>
+                </tr>
+                <tr>
+                  <td>Total:</td>
+                  <td>Rs. <span id="previewTotal">0.00</span></td>
+                </tr>
+              </table>
+            </div>
+            
+            <div class="print-actions no-print">
+              <button class="btn btn-primary" id="printBillBtn">
+                <i class="fas fa-print"></i> Print Bill
+              </button>
+              <button class="btn" id="closePreviewBtn" style="background: #95a5a6; color: white;">
+                <i class="fas fa-times"></i> Close Preview
+              </button>
+            </div>
+            
+            <div class="print-only" style="margin-top: 50px; text-align: center;">
+              <p>Thank you for your business!</p>
+              <p>Software by Sindhi Billing System</p>
+            </div>
+          </div>
         </div>
       </div>
     </main>
@@ -488,7 +858,7 @@
         <div class="status-dot" id="statusDot"></div>
         <span id="statusText">Connecting to Firebase...</span>
       </div>
-      <div id="messageCounter">Messages loaded: 0</div>
+      <div>© 2023 Sindhi Billing System</div>
     </div>
   </div>
 
@@ -509,41 +879,34 @@
     const db = firebase.firestore();
     
     // DOM elements
+    const appContainer = document.getElementById('appContainer');
+    const sidebar = document.getElementById('sidebar');
     const authButton = document.getElementById('authButton');
     const userInfo = document.getElementById('userInfo');
     const userName = document.getElementById('userName');
     const userIcon = document.getElementById('userIcon');
-    const messagesContainer = document.getElementById('messagesContainer');
-    const messageInput = document.getElementById('messageInput');
-    const sendButton = document.getElementById('sendButton');
-    const welcomeScreen = document.getElementById('welcomeScreen');
-    const inputContainer = document.getElementById('inputContainer');
+    const loginPage = document.getElementById('loginPage');
+    const dashboardPage = document.getElementById('dashboardPage');
+    const createBillPage = document.getElementById('createBillPage');
+    const dashboardUserName = document.getElementById('dashboardUserName');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
-    const messageCounter = document.getElementById('messageCounter');
-    const onlineUsers = document.getElementById('onlineUsers');
-    const messagesSent = document.getElementById('messagesSent');
-    const yourMessages = document.getElementById('yourMessages');
-    const activeNow = document.getElementById('activeNow');
+    const languageToggle = document.getElementById('languageToggle');
+    const loginButton = document.getElementById('loginButton');
+    const registerButton = document.getElementById('registerButton');
+    const googleAuthButton = document.getElementById('googleAuthButton');
+    const navItems = document.querySelectorAll('.nav-item');
+    const pages = document.querySelectorAll('.page');
+    const previewBillBtn = document.getElementById('previewBillBtn');
+    const saveBillBtn = document.getElementById('saveBillBtn');
+    const printBillBtn = document.getElementById('printBillBtn');
+    const closePreviewBtn = document.getElementById('closePreviewBtn');
+    const invoicePreview = document.getElementById('invoicePreview');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const itemsTable = document.getElementById('itemsTable');
     
-    // Demo stats data
-    let stats = {
-      onlineUsers: 12,
-      messagesSent: 427,
-      yourMessages: 0,
-      activeNow: 3
-    };
-    
-    // Update stats display
-    function updateStats() {
-      onlineUsers.textContent = stats.onlineUsers;
-      messagesSent.textContent = stats.messagesSent;
-      yourMessages.textContent = stats.yourMessages;
-      activeNow.textContent = stats.activeNow;
-    }
-    
-    // Initialize stats
-    updateStats();
+    // Current user
+    let currentUser = null;
     
     // Update connection status
     function updateConnectionStatus(connected) {
@@ -556,161 +919,352 @@
       }
     }
     
-    // Simulate connection status
+    // Initialize connection status
     updateConnectionStatus(true);
     
-    // Format timestamp
-    function formatTimestamp(timestamp) {
-      if (!timestamp) return '';
-      const date = timestamp.toDate();
-      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    // Toggle language
+    languageToggle.addEventListener('click', () => {
+      document.body.classList.toggle('sindhi');
+      if (document.body.classList.contains('sindhi')) {
+        languageToggle.innerHTML = '<i class="fas fa-language"></i> سنڌي / English';
+      } else {
+        languageToggle.innerHTML = '<i class="fas fa-language"></i> English / سنڌي';
+      }
+    });
+    
+    // Navigation
+    navItems.forEach(item => {
+      item.addEventListener('click', () => {
+        // Remove active class from all items
+        navItems.forEach(i => i.classList.remove('active'));
+        // Add active class to clicked item
+        item.classList.add('active');
+        
+        // Show the corresponding page
+        const pageId = item.getAttribute('data-page') + 'Page';
+        pages.forEach(page => {
+          if (page.id === pageId) {
+            page.classList.add('active');
+          } else {
+            page.classList.remove('active');
+          }
+        });
+      });
+    });
+    
+    // Add new item row
+    addItemBtn.addEventListener('click', () => {
+      const rowCount = itemsTable.rows.length;
+      const row = itemsTable.insertRow();
+      
+      const cell1 = row.insertCell(0);
+      const cell2 = row.insertCell(1);
+      const cell3 = row.insertCell(2);
+      const cell4 = row.insertCell(3);
+      const cell5 = row.insertCell(4);
+      const cell6 = row.insertCell(5);
+      
+      cell1.innerHTML = rowCount;
+      cell2.innerHTML = '<input type="text" class="form-control" placeholder="Item name">';
+      cell3.innerHTML = '<input type="number" class="form-control" value="1" min="1">';
+      cell4.innerHTML = '<input type="number" class="form-control" value="0" min="0" step="0.01">';
+      cell5.innerHTML = '0.00';
+      cell6.innerHTML = '<button class="btn btn-danger"><i class="fas fa-trash"></i></button>';
+      
+      // Add event to delete button
+      cell6.querySelector('button').addEventListener('click', () => {
+        row.remove();
+        calculateTotals();
+      });
+      
+      // Add event listeners to quantity and price inputs
+      const qtyInput = cell3.querySelector('input');
+      const priceInput = cell4.querySelector('input');
+      
+      qtyInput.addEventListener('input', calculateTotals);
+      priceInput.addEventListener('input', calculateTotals);
+    });
+    
+    // Calculate invoice totals
+    function calculateTotals() {
+      let subtotal = 0;
+      
+      // Loop through all rows except header
+      for (let i = 1; i < itemsTable.rows.length; i++) {
+        const row = itemsTable.rows[i];
+        const qty = parseFloat(row.cells[2].querySelector('input').value) || 0;
+        const price = parseFloat(row.cells[3].querySelector('input').value) || 0;
+        const total = qty * price;
+        
+        row.cells[4].textContent = total.toFixed(2);
+        subtotal += total;
+      }
+      
+      const tax = subtotal * 0.13;
+      const discount = 0; // Can be implemented later
+      const total = subtotal + tax - discount;
+      
+      document.getElementById('subtotal').textContent = subtotal.toFixed(2);
+      document.getElementById('tax').textContent = tax.toFixed(2);
+      document.getElementById('discount').textContent = discount.toFixed(2);
+      document.getElementById('total').textContent = total.toFixed(2);
     }
     
-    // Add message to UI
-    function addMessageToUI(message, isCurrentUser) {
-      const messageElement = document.createElement('div');
-      messageElement.className = `message ${isCurrentUser ? 'sent' : ''}`;
+    // Preview bill
+    previewBillBtn.addEventListener('click', () => {
+      // Update preview with current data
+      document.getElementById('previewInvoiceNumber').textContent = 
+        document.getElementById('billNumber').value;
+      document.getElementById('previewDate').textContent = 
+        document.getElementById('billDate').value;
+      document.getElementById('previewCustomerName').textContent = 
+        document.getElementById('customerName').value;
+      document.getElementById('previewCustomerPhone').textContent = 
+        'Phone: ' + (document.getElementById('customerPhone').value || 'N/A');
+      document.getElementById('previewCustomerAddress').textContent = 
+        'Address: ' + (document.getElementById('customerAddress').value || 'N/A');
       
-      messageElement.innerHTML = `
-        <div class="message-header">
-          <span class="message-sender">${isCurrentUser ? 'You' : message.senderName}</span>
-          <span class="message-time">${formatTimestamp(message.timestamp)}</span>
-        </div>
-        <div class="message-content">${message.text}</div>
+      // Update items in preview
+      const previewItems = document.getElementById('previewItems');
+      previewItems.innerHTML = '';
+      
+      for (let i = 1; i < itemsTable.rows.length; i++) {
+        const row = itemsTable.rows[i];
+        const desc = row.cells[1].querySelector('input').value;
+        const qty = row.cells[2].querySelector('input').value;
+        const price = parseFloat(row.cells[3].querySelector('input').value).toFixed(2);
+        const total = parseFloat(row.cells[4].textContent).toFixed(2);
+        
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+          <td>${i}</td>
+          <td>${desc || 'Item'}</td>
+          <td>${qty}</td>
+          <td>Rs. ${price}</td>
+          <td>Rs. ${total}</td>
+        `;
+        previewItems.appendChild(newRow);
+      }
+      
+      // Update totals in preview
+      document.getElementById('previewSubtotal').textContent = 
+        document.getElementById('subtotal').textContent;
+      document.getElementById('previewTax').textContent = 
+        document.getElementById('tax').textContent;
+      document.getElementById('previewDiscount').textContent = 
+        document.getElementById('discount').textContent;
+      document.getElementById('previewTotal').textContent = 
+        document.getElementById('total').textContent;
+      
+      // Show preview
+      invoicePreview.style.display = 'block';
+      window.scrollTo(0, document.body.scrollHeight);
+    });
+    
+    // Print bill
+    printBillBtn.addEventListener('click', () => {
+      window.print();
+    });
+    
+    // Close preview
+    closePreviewBtn.addEventListener('click', () => {
+      invoicePreview.style.display = 'none';
+    });
+    
+    // Save bill
+    saveBillBtn.addEventListener('click', () => {
+      alert('Bill saved successfully! In a real application, this would be saved to Firebase Firestore.');
+      // Reset form
+      document.getElementById('customerName').value = '';
+      document.getElementById('customerPhone').value = '';
+      document.getElementById('customerAddress').value = '';
+      
+      // Reset items table
+      while (itemsTable.rows.length > 1) {
+        itemsTable.deleteRow(1);
+      }
+      
+      // Add first row
+      const row = itemsTable.insertRow();
+      row.innerHTML = `
+        <td>1</td>
+        <td><input type="text" class="form-control" placeholder="Item name"></td>
+        <td><input type="number" class="form-control" value="1" min="1"></td>
+        <td><input type="number" class="form-control" value="0" min="0" step="0.01"></td>
+        <td>0.00</td>
+        <td><button class="btn btn-danger"><i class="fas fa-trash"></i></button></td>
       `;
       
-      messagesContainer.insertBefore(messageElement, messagesContainer.firstChild);
-      
-      // Update message counter
-      const count = messagesContainer.querySelectorAll('.message').length;
-      messageCounter.textContent = `Messages loaded: ${count}`;
-    }
-    
-    // Load sample messages
-    function loadSampleMessages() {
-      const sampleMessages = [
-        { text: "Hello everyone! 👋", senderName: "John Doe", timestamp: new Date(Date.now() - 1000 * 60 * 5) },
-        { text: "Has anyone tried the new Firebase features?", senderName: "Jane Smith", timestamp: new Date(Date.now() - 1000 * 60 * 3) },
-        { text: "Yes, they're amazing! I especially like the new security rules.", senderName: "Mike Johnson", timestamp: new Date(Date.now() - 1000 * 60 * 2) },
-        { text: "Welcome to our Firebase chat demo. Sign in to start chatting!", senderName: "System", timestamp: new Date(Date.now() - 1000 * 60 * 1) }
-      ];
-      
-      sampleMessages.forEach(msg => {
-        addMessageToUI(msg, false);
+      // Add event to delete button
+      row.cells[5].querySelector('button').addEventListener('click', () => {
+        row.remove();
+        calculateTotals();
       });
-    }
+      
+      // Add event listeners to quantity and price inputs
+      const qtyInput = row.cells[2].querySelector('input');
+      const priceInput = row.cells[3].querySelector('input');
+      
+      qtyInput.addEventListener('input', calculateTotals);
+      priceInput.addEventListener('input', calculateTotals);
+      
+      // Reset totals
+      document.getElementById('subtotal').textContent = '0.00';
+      document.getElementById('tax').textContent = '0.00';
+      document.getElementById('discount').textContent = '0.00';
+      document.getElementById('total').textContent = '0.00';
+      
+      // Increment bill number
+      const currentNum = parseInt(document.getElementById('billNumber').value.split('-')[1]);
+      document.getElementById('billNumber').value = `INV-${(currentNum + 1).toString().padStart(5, '0')}`;
+    });
     
-    // Load initial messages
-    loadSampleMessages();
+    // Sign in with email/password
+    loginButton.addEventListener('click', () => {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+      
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Signed in
+          currentUser = userCredential.user;
+          showDashboard();
+        })
+        .catch((error) => {
+          alert('Login failed: ' + error.message);
+        });
+    });
+    
+    // Register new account
+    registerButton.addEventListener('click', () => {
+      const email = document.getElementById('loginEmail').value;
+      const password = document.getElementById('loginPassword').value;
+      
+      if (!email || !password) {
+        alert('Please enter both email and password');
+        return;
+      }
+      
+      if (password.length < 6) {
+        alert('Password should be at least 6 characters');
+        return;
+      }
+      
+      auth.createUserWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          // Signed up
+          currentUser = userCredential.user;
+          showDashboard();
+        })
+        .catch((error) => {
+          alert('Registration failed: ' + error.message);
+        });
+    });
     
     // Sign in with Google
-    function signInWithGoogle() {
+    googleAuthButton.addEventListener('click', () => {
       const provider = new firebase.auth.GoogleAuthProvider();
       auth.signInWithPopup(provider)
         .then((result) => {
-          console.log('Sign in successful', result.user);
+          // Signed in
+          currentUser = result.user;
+          showDashboard();
         })
         .catch((error) => {
-          console.error('Sign in error', error);
+          alert('Google sign-in failed: ' + error.message);
         });
-    }
+    });
     
     // Sign out
     function signOut() {
       auth.signOut()
         .then(() => {
-          console.log('Sign out successful');
+          currentUser = null;
+          showLoginPage();
         })
         .catch((error) => {
           console.error('Sign out error', error);
         });
     }
     
-    // Handle authentication state changes
-    auth.onAuthStateChanged((user) => {
-      if (user) {
-        // User is signed in
-        const displayName = user.displayName || 'User';
+    // Show login page
+    function showLoginPage() {
+      loginPage.classList.add('active');
+      dashboardPage.classList.remove('active');
+      createBillPage.classList.remove('active');
+      sidebar.style.display = 'none';
+      
+      // Reset form
+      document.getElementById('loginEmail').value = '';
+      document.getElementById('loginPassword').value = '';
+    }
+    
+    // Show dashboard
+    function showDashboard() {
+      loginPage.classList.remove('active');
+      dashboardPage.classList.add('active');
+      createBillPage.classList.remove('active');
+      sidebar.style.display = 'flex';
+      
+      // Set user info
+      if (currentUser) {
+        const displayName = currentUser.displayName || currentUser.email.split('@')[0];
         const firstLetter = displayName.charAt(0).toUpperCase();
         
         userName.textContent = displayName;
+        dashboardUserName.textContent = displayName;
         userIcon.textContent = firstLetter;
         userInfo.style.display = 'flex';
         
         authButton.innerHTML = '<i class="fas fa-sign-out-alt"></i> <span>Sign Out</span>';
         authButton.className = 'auth-btn signout';
         authButton.onclick = signOut;
-        
-        welcomeScreen.style.display = 'none';
-        inputContainer.style.display = 'flex';
-        sendButton.disabled = false;
-        
-        // Update stats with user-specific data
-        stats.yourMessages = Math.floor(Math.random() * 20) + 5;
-        updateStats();
-      } else {
-        // User is signed out
-        userInfo.style.display = 'none';
-        
-        authButton.innerHTML = '<i class="fab fa-google"></i> <span>Sign in with Google</span>';
-        authButton.className = 'auth-btn';
-        authButton.onclick = signInWithGoogle;
-        
-        welcomeScreen.style.display = 'flex';
-        inputContainer.style.display = 'none';
-      }
-    });
-    
-    // Send message
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (text && auth.currentUser) {
-        // In a real app, you would save to Firestore here
-        const user = auth.currentUser;
-        const displayName = user.displayName || 'User';
-        
-        const newMessage = {
-          text: text,
-          senderId: user.uid,
-          senderName: displayName,
-          timestamp: firebase.firestore.FieldValue.serverTimestamp()
-        };
-        
-        // Add message to UI
-        addMessageToUI(newMessage, true);
-        
-        // Clear input
-        messageInput.value = '';
-        
-        // Update stats
-        stats.messagesSent++;
-        stats.yourMessages++;
-        updateStats();
       }
     }
     
-    // Event listeners
-    sendButton.addEventListener('click', sendMessage);
-    
-    messageInput.addEventListener('keypress', (e) => {
-      if (e.key === 'Enter') {
-        sendMessage();
+    // Handle authentication state changes
+    auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is signed in
+        currentUser = user;
+        showDashboard();
+      } else {
+        // User is signed out
+        currentUser = null;
+        showLoginPage();
       }
     });
     
-    messageInput.addEventListener('input', () => {
-      sendButton.disabled = messageInput.value.trim() === '';
-    });
+    // Initialize the app
+    function initApp() {
+      // Set today's date as default
+      const today = new Date();
+      document.getElementById('billDate').value = today.toISOString().split('T')[0];
+      
+      // Add event to first row delete button
+      const firstRow = itemsTable.rows[1];
+      if (firstRow) {
+        firstRow.cells[5].querySelector('button').addEventListener('click', () => {
+          firstRow.remove();
+          calculateTotals();
+        });
+        
+        // Add event listeners to quantity and price inputs
+        const qtyInput = firstRow.cells[2].querySelector('input');
+        const priceInput = firstRow.cells[3].querySelector('input');
+        
+        qtyInput.addEventListener('input', calculateTotals);
+        priceInput.addEventListener('input', calculateTotals);
+      }
+    }
     
-    // Initialize auth button
-    authButton.onclick = signInWithGoogle;
-    
-    // Simulate real-time updates
-    setInterval(() => {
-      stats.activeNow = Math.floor(Math.random() * 5) + 1;
-      stats.onlineUsers = Math.floor(Math.random() * 5) + 10;
-      updateStats();
-    }, 10000);
+    // Initialize the application
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
